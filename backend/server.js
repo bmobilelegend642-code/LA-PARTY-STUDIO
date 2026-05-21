@@ -1,72 +1,109 @@
-import express from "express";
-import cors from "cors";
-import multer from "multer";
-import fs from "fs";
-import fetch from "node-fetch";
-import FormData from "form-data";
-import { execFile } from "child_process";
-import { promisify } from "util";
+// backend/server.js - Roblox Audio Uploader Pro v2
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const { exec } = require('child_process');
+const util = require('util');
+const execAsync = util.promisify(exec);
+const axios = require('axios');
+const multer = require('multer');
 
-const execFileAsync = promisify(execFile);
 const app = express();
-const upload = multer({ dest: "tmp/" });
 const PORT = process.env.PORT || 3000;
 
-app.use(cors({ origin: true }));
-app.use(express.json());
-app.use(express.static("public"));
+// Middleware
+app.use(cors());
+app.use(express.json({ limit: '100mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// YouTube
-app.get("/api/download/youtube", async (req, res) => {
-  const url = req.query.url;
-  if (!url) return res.status(400).json({ error: "URL kosong" });
-  try {
-    const out = `tmp/${Date.now()}.mp3`;
-    await execFileAsync("yt-dlp", [url, "-x", "--audio-format", "mp3", "-o", out]);
-    res.download(out, "youtube.mp3", () => fs.unlinkSync(out));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+const upload = multer({ dest: '/tmp/' });
+
+// === HEALTH CHECK ===
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, time: new Date().toISOString(), version: 'v2' });
 });
 
-// SoundCloud
-app.get("/api/download/soundcloud", async (req, res) => {
-  const url = req.query.url;
+// === YOUTUBE DOWNLOAD ===
+app.post('/api/youtube', async (req, res) => {
   try {
-    const out = `tmp/${Date.now()}.mp3`;
-    await execFileAsync("yt-dlp", [url, "-x", "--audio-format", "mp3", "-o", out]);
-    res.download(out, "soundcloud.mp3", () => fs.unlinkSync(out));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Upload Roblox
-app.post("/api/roblox/upload", upload.single("file"), async (req, res) => {
-  const apiKey = req.headers["x-api-key"];
-  const { name, description, userId, isGroup } = req.body;
-  try {
-    const form = new FormData();
-    form.append("request", JSON.stringify({
-      assetType: "Audio",
-      displayName: name,
-      description: description || "",
-      creationContext: { creator: isGroup === "true" ? { groupId: Number(userId) } : { userId: Number(userId) } }
-    }), { contentType: "application/json" });
-    form.append("fileContent", fs.createReadStream(req.file.path));
-    const r = await fetch("https://apis.roblox.com/assets/v1/assets", {
-      method: "POST",
-      headers: { "x-api-key": apiKey, ...form.getHeaders() },
-      body: form
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: 'URL required' });
+    
+    const outputPath = `/tmp/${Date.now()}.mp3`;
+    // pakai yt-dlp (sudah ada di Railway kalau kamu tambah di nixpacks)
+    await execAsync(`yt-dlp -x --audio-format mp3 -o "${outputPath}" "${url}"`);
+    
+    const fileBuffer = fs.readFileSync(outputPath);
+    fs.unlinkSync(outputPath);
+    
+    res.json({ 
+      success: true, 
+      audio: fileBuffer.toString('base64'),
+      filename: 'youtube_audio.mp3'
     });
-    const data = await r.json();
-    fs.unlinkSync(req.file.path);
-    res.json(data);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.get("/api/roblox/status", async (req, res) => {
-  const apiKey = req.headers["x-api-key"];
-  const id = req.query.id;
-  const r = await fetch(`https://apis.roblox.com/assets/v1/assets/${id}`, { headers: { "x-api-key": apiKey } });
-  const data = await r.json();
-  res.json({ status: data.moderationResult?.moderationState || "Pending" });
+// === SOUNDCLOUD DOWNLOAD ===
+app.post('/api/soundcloud', async (req, res) => {
+  try {
+    const { url } = req.body;
+    const outputPath = `/tmp/${Date.now()}.mp3`;
+    await execAsync(`yt-dlp -x --audio-format mp3 -o "${outputPath}" "${url}"`);
+    
+    const fileBuffer = fs.readFileSync(outputPath);
+    fs.unlinkSync(outputPath);
+    
+    res.json({ success: true, audio: fileBuffer.toString('base64') });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.listen(PORT, () => console.log("Running"));
+// === UPLOAD KE ROBLOX ===
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    const { apiKey, userId, name, description } = req.body;
+    const filePath = req.file.path;
+    
+    const fileData = fs.readFileSync(filePath);
+    
+    // Roblox Open Cloud API
+    const response = await axios.post(
+      `https://apis.roblox.com/assets/v1/assets`,
+      fileData,
+      {
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'audio/mpeg',
+          'Roblox-Asset-Type': 'Audio'
+        },
+        params: {
+          assetType: 'Audio',
+          name: name || 'Uploaded Audio',
+          description: description || '',
+          creatorTargetId: userId,
+          creatorType: 'User'
+        },
+        maxBodyLength: Infinity
+      }
+    );
+    
+    fs.unlinkSync(filePath);
+    res.json({ success: true, assetId: response.data.assetId });
+  } catch (error) {
+    res.status(500).json({ error: error.response?.data || error.message });
+  }
+});
+
+// Fallback ke index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server jalan di port ${PORT}`);
+});
