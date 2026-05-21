@@ -253,7 +253,7 @@ footer strong { color:var(--text); }
         <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
           <div class="field">
             <label class="label">Backend URL</label>
-            <input type="url" class="input" id="backendUrl" value="http://localhost:3000">
+            <input type="url" class="input" id="backendUrl" value="">
           </div>
           <div class="grid-2">
             <div class="field">
@@ -456,7 +456,7 @@ footer strong { color:var(--text); }
   const $$ = s => document.querySelectorAll(s);
   
   const state = {
-    backend: 'http://localhost:3000',
+    backend: ',
     audioBuffer: null,
     originalFile: null,
     processedBlob: null,
@@ -508,7 +508,7 @@ footer strong { color:var(--text); }
   const load = () => {
     try {
       const d = JSON.parse(localStorage.getItem('raup_v2') || '{}');
-      state.backend = d.backend || 'http://localhost:3000';
+      state.backend = d.backend || '';
       state.userId = d.userId || '';
       state.isGroup = d.isGroup || false;
       state.encryptedKey = d.encryptedKey || null;
