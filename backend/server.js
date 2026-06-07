@@ -29,6 +29,27 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, time: new Date().toISOString(), version: 'v2' });
 });
 
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const COOKIES_PATH = '/app/cookies.txt'; // taruh cookies.txt di root repo
+
+function cookiesFlag() {
+  try {
+    if (fs.existsSync(COOKIES_PATH)) return `--cookies "${COOKIES_PATH}"`;
+  } catch(e) {}
+  return '';
+}
+
+function ytdlpCmd(url, outputPath, extraFlags = '') {
+  const cookies = cookiesFlag();
+  // --extractor-args "youtube:player_client=web" menghindari bot-check di beberapa kasus
+  return `yt-dlp -x --audio-format mp3 --no-playlist \
+    --extractor-args "youtube:player_client=web,web_creator" \
+    --no-check-certificates \
+    --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+    ${cookies} ${extraFlags} \
+    -o "${outputPath}" "${url}"`;
+}
+
 // ── YOUTUBE DOWNLOAD ──────────────────────────────────────────────────────────
 app.post('/api/youtube', async (req, res) => {
   const { url } = req.body;
@@ -36,13 +57,21 @@ app.post('/api/youtube', async (req, res) => {
 
   const outputPath = `/tmp/${Date.now()}.mp3`;
   try {
-    await execAsync(`yt-dlp -x --audio-format mp3 --no-playlist -o "${outputPath}" "${url}"`);
+    await execAsync(ytdlpCmd(url, outputPath), { timeout: 180000 });
     const fileBuffer = fs.readFileSync(outputPath);
     fs.unlinkSync(outputPath);
     res.json({ success: true, audio: fileBuffer.toString('base64'), filename: 'youtube_audio.mp3' });
   } catch (err) {
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-    res.status(500).json({ error: err.message });
+    const msg = err.message || '';
+    // Pesan error yang lebih jelas
+    if (msg.includes('Sign in') || msg.includes('bot')) {
+      res.status(403).json({ error: 'YouTube minta login. Upload cookies.txt ke repo (lihat README). Error: ' + msg.split('\n')[0] });
+    } else if (msg.includes('not available')) {
+      res.status(400).json({ error: 'Video tidak tersedia / private / region locked.' });
+    } else {
+      res.status(500).json({ error: msg.split('\n').slice(0,3).join(' | ') });
+    }
   }
 });
 
@@ -53,13 +82,16 @@ app.post('/api/soundcloud', async (req, res) => {
 
   const outputPath = `/tmp/${Date.now()}.mp3`;
   try {
-    await execAsync(`yt-dlp -x --audio-format mp3 --no-playlist -o "${outputPath}" "${url}"`);
+    // SoundCloud tidak butuh cookies, tapi tetap pakai flag dasar
+    await execAsync(`yt-dlp -x --audio-format mp3 --no-playlist \
+      --no-check-certificates \
+      -o "${outputPath}" "${url}"`, { timeout: 180000 });
     const fileBuffer = fs.readFileSync(outputPath);
     fs.unlinkSync(outputPath);
     res.json({ success: true, audio: fileBuffer.toString('base64'), filename: 'soundcloud_audio.mp3' });
   } catch (err) {
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: (err.message || '').split('\n').slice(0,3).join(' | ') });
   }
 });
 
