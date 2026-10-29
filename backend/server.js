@@ -143,4 +143,94 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (!filePath) return res.status(400).json({ error: 'Fail audio diperlukan' });
 
     const fileData = fs.readFileSync(filePath);
-    const fileName = req.file.originalname ||
+    const fileName = req.file.originalname || 'audio.wav';
+    const mimeType = req.file.mimetype     || 'audio/wav';
+
+    const creatorObj = {};
+    if (userId) {
+      if (isGroup === 'true' || isGroup === true) {
+        creatorObj.groupId = String(userId);
+      } else {
+        creatorObj.userId = String(userId);
+      }
+    }
+
+    const form = new FormData();
+    form.append('request', JSON.stringify({
+      assetType:   'Audio',
+      displayName: name        || 'Uploaded Audio',
+      description: description || 'Uploaded via LA\'PARTY STUDIO',
+      creationContext: { creator: creatorObj }
+    }), { contentType: 'application/json' });
+
+    form.append('fileContent', fileData, {
+      filename:    fileName,
+      contentType: mimeType
+    });
+
+    const response = await axios.post(
+      'https://apis.roblox.com/assets/v1/assets',
+      form,
+      {
+        headers: {
+          'x-api-key': apiKey,
+          ...form.getHeaders()
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity
+      }
+    );
+
+    fs.unlinkSync(filePath);
+
+    const data = response.data;
+    let assetId = data.assetId || data.id;
+
+    if (!assetId && (data.operationId || data.path)) {
+      const opId = data.operationId || data.path?.split('/').pop();
+      assetId = await pollOperation(apiKey, opId);
+    }
+
+    res.json({ success: true, assetId });
+  } catch (err) {
+    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    let errorDetail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+    console.error('[UPLOAD ERROR]', errorDetail);
+    res.status(500).json({ error: errorDetail });
+  }
+});
+
+// ── POLL OPERATION ────────────────────────────────────────────────────────────
+async function pollOperation(apiKey, opId, maxTries = 40) {
+  for (let i = 0; i < maxTries; i++) {
+    await new Promise(r => setTimeout(r, 2500));
+    try {
+      const { data } = await axios.get(
+        `https://apis.roblox.com/assets/v1/operations/${opId}`,
+        { headers: { 'x-api-key': apiKey } }
+      );
+      if (data.done && data.response?.assetId) return data.response.assetId;
+      if (data.done && data.response?.Id)      return data.response.Id;
+      if (data.response?.assetId)              return data.response.assetId;
+      if (data.status === 'FAILED' || data.error)
+        throw new Error(JSON.stringify(data.error) || 'Gagal memproses asset di Roblox');
+    } catch (e) {
+      if (e.message.includes('FAILED') || e.message.includes('failed')) throw e;
+    }
+  }
+  throw new Error('Upload timeout — semak Roblox Creator Dashboard');
+}
+
+// ── FALLBACK → index.html ─────────────────────────────────────────────────────
+app.get('*', (req, res) => {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('index.html tidak dijumpai');
+  }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Pelayan LA'PARTY STUDIO berjalan di port ${PORT}`);
+});
