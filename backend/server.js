@@ -30,7 +30,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-const COOKIES_PATH = '/app/cookies.txt'; // taruh cookies.txt di root repo
+const COOKIES_PATH = path.join(__dirname, 'cookies.txt');
 
 function cookiesFlag() {
   try {
