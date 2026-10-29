@@ -454,9 +454,9 @@ footer strong { color:var(--text); }
 (() => {
   const $ = s => document.querySelector(s);
   const $$ = s => document.querySelectorAll(s);
-  
+
   const state = {
-    backend: ',
+    backend: '',
     audioBuffer: null,
     originalFile: null,
     processedBlob: null,
@@ -476,12 +476,13 @@ footer strong { color:var(--text); }
     isGroup: false,
   };
 
-  const log = (msg, type='') => {
+  const log = (msg, type = '') => {
     const el = $('#log');
     const entry = document.createElement('div');
     entry.className = `log-entry ${type}`;
     entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     el.appendChild(entry);
+  };
     el.scrollTop = el.scrollHeight;
   };
 
