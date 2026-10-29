@@ -906,35 +906,39 @@ header {
     log('API key tersimpan di browser', 'success');
   };
 
-  // DIRECT UPLOAD TO ROBLOX
+ // DIRECT UPLOAD TO ROBLOX
   $('#btnUpload').onclick = async () => {
     if (!state.processedBlob) { toast('Konversi audio dulu!', 'error'); return; }
     if (!state.apiKey) { $('#apiModal').style.display='grid'; return; }
 
     $('#btnUpload').disabled = true;
     $('#uploadSpinner').classList.remove('hidden');
-    $('#uploadText').textContent = 'Mengupload ke Roblox... (bisa memakan waktu)';
+    $('#uploadText').textContent = 'Mengupload ke Roblox... (mohon tunggu)';
     $('#step1').style.width = '100%'; $('#step2').style.width = '50%';
-    log('Memulai upload & menunggu konfirmasi server...');
+    log('Memulai upload ke Roblox...');
 
     try {
       const form = new FormData();
       form.append('file', state.processedBlob, $('#readyName').textContent);
       form.append('name', $('#audioName').value || 'Untitled');
       form.append('description', $('#audioDesc').value || '');
-      form.append('apiKey', state.apiKey); // Dikirim lewat body form sesuai kebutuhan server.js
+      form.append('apiKey', state.apiKey);
+      form.append('userId', $('#userId')?.value || '8377415030');
+      form.append('isGroup', $('#isGroup')?.value || 'false');
 
       const res = await fetch(`${state.backend}/api/upload`, {
         method: 'POST',
         body: form
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || await res.text());
+        let errStr = data.error;
+        if (typeof errStr === 'object') errStr = JSON.stringify(errStr);
+        throw new Error(errStr || `HTTP ${res.status}`);
       }
 
-      const data = await res.json();
       const assetId = data.assetId;
       
       if (assetId) {
@@ -944,11 +948,11 @@ header {
         toast(`Upload sukses! Asset ID: ${assetId}`, 'success');
         updateLastHistoryAssetId(assetId, 'Selesai');
       } else {
-        throw new Error('Asset ID tidak ditemukan di respons');
+        throw new Error('Asset ID tidak ditemukan');
       }
     } catch(e) {
-      log('Upload gagal: '+e.message, 'error');
-      toast('Upload gagal', 'error');
+      log('Upload gagal: ' + e.message, 'error');
+      toast('Upload gagal. Cek log.', 'error');
       updateLastHistoryAssetId('-', 'Gagal');
       $('#step1').style.width = '0%'; $('#step2').style.width = '0%';
     }
