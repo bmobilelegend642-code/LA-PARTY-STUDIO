@@ -28,12 +28,14 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, time: new Date().toISOString(), version: 'v2' });
 });
 
-// ── YOUTUBE DOWNLOAD (KLIEN ANDROID/IOS TANPA COOKIE) ─────────────────────────
+// ── YOUTUBE DOWNLOAD (AUTO FALLBACK JIKA HIT ERROR 429) ───────────────────────
 app.post('/api/youtube', async (req, res) => {
   const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'URL required' });
+  if (!url) return res.status(400).json({ error: 'URL dibutuhkan' });
 
   const outputPath = `/tmp/${Date.now()}.mp3`;
+
+  // 1. Coba yt-dlp secara langsung
   try {
     const cmd = `yt-dlp -x --audio-format mp3 --no-playlist \
       --extractor-args "youtube:player_client=android,ios,web" \
@@ -44,18 +46,49 @@ app.post('/api/youtube', async (req, res) => {
     await execAsync(cmd, { timeout: 180000 });
     const fileBuffer = fs.readFileSync(outputPath);
     fs.unlinkSync(outputPath);
-    res.json({ success: true, audio: fileBuffer.toString('base64'), filename: 'youtube_audio.mp3' });
+    return res.json({ success: true, audio: fileBuffer.toString('base64'), filename: 'youtube_audio.mp3' });
   } catch (err) {
     if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-    const msg = err.message || '';
-    res.status(500).json({ error: msg.split('\n').slice(0,2).join(' ') });
+    console.log('[YT-DLP 429] Mengalihkan ke API Cadangan (Cobalt)...');
+
+    // 2. Jalur Cadangan (Bypass Error 429 Render)
+    try {
+      const cobaltRes = await axios.post('https://api.cobalt.tools/', {
+        url: url,
+        downloadMode: 'audio',
+        audioFormat: 'mp3'
+      }, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      });
+
+      const audioUrl = cobaltRes.data?.url || cobaltRes.data?.picker?.[0]?.url;
+      if (!audioUrl) throw new Error('Cobalt API tidak mengembalikan link audio');
+
+      const streamRes = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 60000 });
+      const fileBuffer = Buffer.from(streamRes.data);
+
+      return res.json({
+        success: true,
+        audio: fileBuffer.toString('base64'),
+        filename: 'youtube_audio.mp3'
+      });
+    } catch (fallbackErr) {
+      console.error('[FALLBACK ERROR]', fallbackErr.message);
+      return res.status(500).json({
+        error: 'IP Server terkena limit YouTube (429). Silakan coba lagi beberapa saat lagi atau gunakan tab "Upload File" lokal.'
+      });
+    }
   }
 });
 
 // ── SOUNDCLOUD DOWNLOAD ───────────────────────────────────────────────────────
 app.post('/api/soundcloud', async (req, res) => {
   const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'URL required' });
+  if (!url) return res.status(400).json({ error: 'URL dibutuhkan' });
 
   const outputPath = `/tmp/${Date.now()}.mp3`;
   try {
@@ -81,7 +114,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     const fileName = req.file.originalname || 'audio.wav';
     const mimeType = req.file.mimetype     || 'audio/wav';
 
-    // Konfigurasi ID Pembuat (User / Group)
     const creatorObj = {};
     if (userId) {
       if (isGroup === 'true' || isGroup === true) {
