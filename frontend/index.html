@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LA'PARTY STUDIO - Roblox Audio Uploader Pro v2</title>
 <style>
-:root {
+:root, [data-theme="dark"] {
   --bg: #05050a;
   --card: #11121c;
   --card-2: #151725;
@@ -19,13 +19,34 @@
   --danger: #ef4444;
   --warning: #f59e0b;
   --gradient: linear-gradient(135deg, var(--accent1), var(--accent2));
+  --log-bg: #080910;
+  --header-bg: rgba(17,18,28,.7);
 }
-* { margin:0; padding:0; box-sizing:border-box; }
+
+[data-theme="light"] {
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --card-2: #f9fafb;
+  --border: #e5e7eb;
+  --border-hover: #d1d5db;
+  --text: #111827;
+  --muted: #6b7280;
+  --accent1: #7c3aed;
+  --accent2: #2563eb;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --gradient: linear-gradient(135deg, var(--accent1), var(--accent2));
+  --log-bg: #f8fafc;
+  --header-bg: rgba(255,255,255,.8);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; transition: background-color .2s ease, border-color .2s ease, color .2s ease; }
 html, body { height:100%; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: radial-gradient(1200px 800px at 85% -10%, rgba(124,58,237,.18), transparent 60%),
-              radial-gradient(900px 700px at -15% 30%, rgba(59,130,246,.15), transparent 60%),
+  background: radial-gradient(1200px 800px at 85% -10%, rgba(124,58,237,.12), transparent 60%),
+              radial-gradient(900px 700px at -15% 30%, rgba(59,130,246,.12), transparent 60%),
               var(--bg);
   color: var(--text);
   line-height: 1.6;
@@ -35,7 +56,7 @@ body {
 header {
   display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
   margin-bottom: 24px; padding: 16px 20px;
-  background: rgba(17,18,28,.7); backdrop-filter: blur(12px);
+  background: var(--header-bg); backdrop-filter: blur(12px);
   border:1px solid var(--border); border-radius: 16px;
 }
 .logo { display:flex; align-items:center; gap:12px; }
@@ -44,7 +65,7 @@ header {
   display:grid; place-items:center; box-shadow: 0 8px 24px rgba(124,58,237,.3);
 }
 .logo h1 { font-size:18px; font-weight:700; letter-spacing:-.3px; }
-.badge { font-size:11px; padding:3px 8px; border-radius:20px; background:var(--gradient); font-weight:600; margin-left:8px; }
+.badge { font-size:11px; padding:3px 8px; border-radius:20px; background:var(--gradient); font-weight:600; margin-left:8px; color:white; }
 .quota-info { font-size:13px; color:var(--muted); background:var(--card-2); padding:6px 14px; border-radius:20px; border:1px solid var(--border); }
 .quota-info span { color:var(--accent2); font-weight:600; }
 
@@ -57,7 +78,7 @@ header {
 
 .panel {
   background: var(--card); border:1px solid var(--border); border-radius:18px;
-  overflow:hidden; box-shadow: 0 10px 40px rgba(0,0,0,.3); margin-bottom:20px;
+  overflow:hidden; box-shadow: 0 10px 40px rgba(0,0,0,.08); margin-bottom:20px;
 }
 .panel-header { padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
 .panel-header h2 { font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
@@ -69,7 +90,7 @@ header {
   font-size:13px; font-weight:500; border-radius:8px; cursor:pointer; transition:.2s;
   display:flex; align-items:center; justify-content:center; gap:6px;
 }
-.tab-btn.active { background:var(--card); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
+.tab-btn.active { background:var(--card); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.1); }
 .tab-btn:hover:not(.active){ color:var(--text); }
 
 .tab-content { display:none; }
@@ -99,13 +120,13 @@ header {
 .btn-primary { background:var(--gradient); color:white; box-shadow:0 4px 16px rgba(124,58,237,.25); }
 .btn-primary:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 6px 20px rgba(124,58,237,.35); }
 .btn-secondary { background:var(--card-2); color:var(--text); border:1px solid var(--border); }
-.btn-secondary:hover:not(:disabled){ border-color:var(--border-hover); background:#1a1c2a; }
+.btn-secondary:hover:not(:disabled){ border-color:var(--border-hover); }
 .btn-ghost { background:transparent; color:var(--muted); }
 .btn-ghost:hover { color:var(--text); background:var(--card-2); }
 .btn-sm { padding:7px 12px; font-size:13px; }
 
 .waveform-container {
-  background:#080910; border:1px solid var(--border); border-radius:12px; padding:12px;
+  background:var(--log-bg); border:1px solid var(--border); border-radius:12px; padding:12px;
   margin-bottom:16px; position:relative; overflow:hidden;
 }
 #waveform { width:100%; height:120px; display:block; cursor:pointer; }
@@ -120,7 +141,7 @@ header {
 .control-group { background:var(--card-2); padding:12px; border-radius:10px; border:1px solid var(--border); }
 .control-label { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px; }
 .slider { width:100%; height:4px; -webkit-appearance:none; appearance:none; background:var(--border); border-radius:2px; outline:none; }
-.slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:white; cursor:pointer; }
+.slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--text); cursor:pointer; }
 
 .switch { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
 .switch input { display:none; }
@@ -136,7 +157,7 @@ header {
 .step { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
 .step-fill { height:100%; width:0%; background:var(--gradient); transition:width .3s; }
 
-.log { background:#080910; border:1px solid var(--border); border-radius:10px; padding:10px; height:130px; overflow-y:auto; font-family:ui-monospace, monospace; font-size:12px; }
+.log { background:var(--log-bg); border:1px solid var(--border); border-radius:10px; padding:10px; height:130px; overflow-y:auto; font-family:ui-monospace, monospace; font-size:12px; }
 .log-entry { margin-bottom:4px; color:var(--muted); }
 .log-entry.success { color:var(--success); }
 .log-entry.error { color:var(--danger); }
@@ -154,7 +175,7 @@ header {
 
 .hidden { display:none !important; }
 .toast-container { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
-.toast { padding:12px 16px; background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.4); min-width:280px; }
+.toast { padding:12px 16px; background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.15); min-width:280px; }
 </style>
 </head>
 <body>
@@ -172,6 +193,7 @@ header {
       <span id="quotaCount">3/3</span> konversi tersisa hari ini • <strong id="planType">Free Plan</strong>
     </div>
     <div style="display:flex; align-items:center; gap:12px;">
+      <button class="btn btn-secondary btn-sm" id="btnThemeToggle" title="Ubah Mode Tampilan">🌙 Dark</button>
       <span style="font-size:12px; color:var(--muted);">Backend: <b id="backendTextDisplay">Otomatis</b></span>
       <div class="status-dot" id="backendStatus"></div>
       <button class="btn btn-ghost btn-sm" id="btnSettings">API Config</button>
@@ -210,23 +232,6 @@ header {
             <div style="font-size:12px; color:var(--muted); margin-bottom:12px;">MP3, OGG, WAV • Maks 20MB</div>
             <button class="btn btn-secondary btn-sm" id="btnPickFile">Pilih File</button>
             <input type="file" id="fileInput" accept="audio/*,.mp3,.ogg,.wav,.m4a" hidden>
-          </div>
-        </div>
-
-        <!-- ROBLOX SETTINGS (AUTO STORED) -->
-        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <div class="field">
-              <label class="label">User / Group ID</label>
-              <input type="text" class="input" id="userId" placeholder="8377415030">
-            </div>
-            <div class="field">
-              <label class="label">Tipe ID</label>
-              <select class="select" id="isGroup">
-                <option value="false">User</option>
-                <option value="true">Group</option>
-              </select>
-            </div>
           </div>
         </div>
       </div>
@@ -299,11 +304,11 @@ header {
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
             <div class="field">
-              <label class="label">Nama Audio</label>
+              <label class="label">Nama Audio (Opsional)</label>
               <input type="text" class="input" id="audioName" placeholder="My Audio Track">
             </div>
             <div class="field">
-              <label class="label">Deskripsi</label>
+              <label class="label">Deskripsi (Opsional)</label>
               <input type="text" class="input" id="audioDesc" placeholder="LA'PARTY Upload">
             </div>
           </div>
@@ -418,7 +423,7 @@ header {
   const $$ = s => document.querySelectorAll(s);
 
   const state = {
-    backend: window.location.origin, // OTOMATIS TERHUBUNG KE DOMAIN RENDER SAMA
+    backend: window.location.origin,
     audioBuffer: null,
     originalFile: null,
     processedBlob: null,
@@ -431,13 +436,11 @@ header {
     duration: 0,
     animationId: null,
     uploadId: null,
-    pollInterval: null,
     apiKey: '',
-    userId: '8377415030',
-    isGroup: false,
     history: [],
     quota: 3,
-    isUnlimited: false
+    isUnlimited: false,
+    theme: 'dark'
   };
 
   const log = (msg, type = '') => {
@@ -459,33 +462,44 @@ header {
     setTimeout(()=>t.remove(), 4000);
   };
 
+  // THEME MANAGEMENT
+  function applyTheme(theme) {
+    state.theme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    $('#btnThemeToggle').textContent = theme === 'dark' ? '🌙 Dark' : '☀️ Light';
+    if (state.audioBuffer) drawWaveform();
+  }
+
+  $('#btnThemeToggle').onclick = () => {
+    const newTheme = state.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+    save();
+  };
+
   // LOCAL STORAGE (AUTO-LOAD & AUTO-SAVE)
   const save = () => {
     localStorage.setItem('laparty_uploader_v2_auto', JSON.stringify({
-      userId: state.userId,
-      isGroup: state.isGroup,
       apiKey: state.apiKey,
       history: state.history,
       isUnlimited: state.isUnlimited,
-      quota: state.quota
+      quota: state.quota,
+      theme: state.theme
     }));
   };
 
   const load = () => {
     try {
       const d = JSON.parse(localStorage.getItem('laparty_uploader_v2_auto') || '{}');
-      state.userId = d.userId || '8377415030';
-      state.isGroup = d.isGroup || false;
       state.apiKey = d.apiKey || '';
       state.history = d.history || [];
       state.isUnlimited = d.isUnlimited || false;
       state.quota = d.quota !== undefined ? d.quota : 3;
+      state.theme = d.theme || 'dark';
 
-      $('#userId').value = state.userId;
-      $('#isGroup').value = state.isGroup.toString();
       $('#apiKey').value = state.apiKey;
       $('#backendTextDisplay').textContent = window.location.hostname;
       
+      applyTheme(state.theme);
       updateApiStatus();
       updateQuotaDisplay();
       renderHistory();
@@ -572,20 +586,45 @@ header {
 
     try {
       const type = url.includes('soundcloud.com') ? 'soundcloud' : 'youtube';
-      const endpoint = `${state.backend}/api/download/${type}?url=${encodeURIComponent(url)}`;
-      const res = await fetch(endpoint, {signal: AbortSignal.timeout(120000)});
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
+      const endpoint = `${state.backend}/api/${type}`;
+      
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url }),
+        signal: AbortSignal.timeout(180000)
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${res.status}`);
+      }
+      
+      const data = await res.json();
+      
+      if (!data.success || !data.audio) {
+        throw new Error('Respons backend tidak valid');
+      }
 
-      state.originalFile = new File([blob], `remote_audio.mp3`, {type: blob.type});
+      // Decode base64 string to Uint8Array
+      const binaryString = atob(data.audio);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes.buffer], { type: 'audio/mpeg' });
+
+      state.originalFile = new File([blob], data.filename || `remote_audio.mp3`, {type: blob.type});
       $('#sourceBadge').textContent = type === 'soundcloud' ? 'SoundCloud' : 'YouTube';
       $('#audioName').value = `Audio ${Date.now()}`;
+      
       await loadAudio(blob);
       log('Audio remote berhasil diambil', 'success');
       toast('Berhasil mengambil audio', 'success');
+      
     } catch(e) {
       log(`Gagal ambil audio: ${e.message}`, 'error');
-      toast('Gagal mengambil. Cek status backend.', 'error');
+      toast('Gagal mengambil. Lihat log.', 'error');
     } finally {
       btn.disabled = false; spinner.classList.add('hidden'); text.textContent = 'Ambil Audio';
     }
@@ -629,12 +668,12 @@ header {
     const step = Math.ceil(data.length / width);
     const amp = height/2;
 
-    ctx.fillStyle = '#080910';
+    ctx.fillStyle = state.theme === 'dark' ? '#080910' : '#f8fafc';
     ctx.fillRect(0,0,width,height);
 
     const grad = ctx.createLinearGradient(0,0,0,height);
     grad.addColorStop(0, '#7c3aed');
-    grad.addColorStop(1, '#3b82f6');
+    grad.addColorStop(1, '#2563eb');
     ctx.fillStyle = grad;
 
     for (let i=0; i<width; i++) {
@@ -867,83 +906,56 @@ header {
     log('API key tersimpan di browser', 'success');
   };
 
-  // DIRECT UPLOAD TO ROBLOX (NO MANUAL PASSPHRASE PROMPT)
+  // DIRECT UPLOAD TO ROBLOX
   $('#btnUpload').onclick = async () => {
     if (!state.processedBlob) { toast('Konversi audio dulu!', 'error'); return; }
     if (!state.apiKey) { $('#apiModal').style.display='grid'; return; }
 
     $('#btnUpload').disabled = true;
     $('#uploadSpinner').classList.remove('hidden');
-    $('#uploadText').textContent = 'Mengupload...';
+    $('#uploadText').textContent = 'Mengupload ke Roblox... (bisa memakan waktu)';
     $('#step1').style.width = '100%'; $('#step2').style.width = '50%';
-    log('Memulai upload ke Roblox Open Cloud...');
+    log('Memulai upload & menunggu konfirmasi server...');
 
     try {
       const form = new FormData();
       form.append('file', state.processedBlob, $('#readyName').textContent);
-      form.append('nama', $('#audioName').value || 'Untitled');
-      form.append('deskripsi', $('#audioDesc').value || '');
-      form.append('userId', state.userId);
-      form.append('isGroup', state.isGroup);
+      form.append('name', $('#audioName').value || 'Untitled');
+      form.append('description', $('#audioDesc').value || '');
+      form.append('apiKey', state.apiKey); // Dikirim lewat body form sesuai kebutuhan server.js
 
-      const res = await fetch(`${state.backend}/api/roblox/upload`, {
+      const res = await fetch(`${state.backend}/api/upload`, {
         method: 'POST',
-        headers: {'x-api-key': state.apiKey},
         body: form
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || await res.text());
+      }
 
       const data = await res.json();
-      state.uploadId = data.id || data.assetId || data.operationId;
-      $('#step2').style.width = '100%';
-      log(`Upload diterima. Operation ID: ${state.uploadId}`, 'success');
-      toast('Upload terkirim ke Roblox', 'success');
-
-      pollStatus(state.uploadId, state.apiKey);
+      const assetId = data.assetId;
+      
+      if (assetId) {
+        $('#step2').style.width = '100%';
+        $('#step3').style.width = '100%';
+        log(`✓ SELESAI! Asset ID: ${assetId}`, 'success');
+        toast(`Upload sukses! Asset ID: ${assetId}`, 'success');
+        updateLastHistoryAssetId(assetId, 'Selesai');
+      } else {
+        throw new Error('Asset ID tidak ditemukan di respons');
+      }
     } catch(e) {
       log('Upload gagal: '+e.message, 'error');
       toast('Upload gagal', 'error');
-      $('#btnUpload').disabled = false;
+      updateLastHistoryAssetId('-', 'Gagal');
+      $('#step1').style.width = '0%'; $('#step2').style.width = '0%';
     }
+    $('#btnUpload').disabled = false;
     $('#uploadSpinner').classList.add('hidden');
     $('#uploadText').textContent = 'Upload Langsung ke Roblox';
   };
-
-  function pollStatus(id, apiKey) {
-    clearInterval(state.pollInterval);
-    let attempts = 0;
-    state.pollInterval = setInterval(async () => {
-      attempts++;
-      try {
-        const res = await fetch(`${state.backend}/api/roblox/status?id=${encodeURIComponent(id)}`, {
-          headers: {'x-api-key': apiKey}
-        });
-        if (!res.ok) throw new Error('status error');
-        const data = await res.json();
-        const status = (data.status || '').toLowerCase();
-
-        if (status.includes('success') || status.includes('complete') || data.assetId) {
-          $('#step3').style.width = '100%';
-          clearInterval(state.pollInterval);
-          log(`✓ SELESAI! Asset ID: ${data.assetId}`, 'success');
-          toast(`Upload sukses! Asset ID: ${data.assetId}`, 'success');
-          updateLastHistoryAssetId(data.assetId, 'Selesai');
-          $('#btnUpload').disabled = false;
-        } else if (status.includes('fail') || status.includes('error')) {
-          clearInterval(state.pollInterval);
-          log('✗ Upload gagal di Roblox', 'error');
-          toast('Gagal diproses Roblox', 'error');
-          updateLastHistoryAssetId('-', 'Gagal');
-          $('#btnUpload').disabled = false;
-        }
-
-        if (attempts > 40) { clearInterval(state.pollInterval); log('Timeout monitoring', 'error'); }
-      } catch(e) {
-        log('Gagal cek status', 'error');
-      }
-    }, 3000);
-  }
 
   // HISTORY
   function addHistoryItem(name, dur, status, assetId = '-') {
@@ -1007,13 +1019,10 @@ header {
     }
   };
 
-  // EVENT LISTENERS FOR AUTO-SAVE
-  $('#userId').onchange = e => { state.userId = e.target.value.trim(); save(); };
-  $('#isGroup').onchange = e => { state.isGroup = e.target.value==='true'; save(); };
-
   load();
   checkBackend();
   setInterval(checkBackend, 30000);
+  window.addEventListener('resize', () => { if(state.audioBuffer) drawWaveform(); });
 })();
 </script>
 </body>
