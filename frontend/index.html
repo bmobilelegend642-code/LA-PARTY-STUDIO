@@ -129,9 +129,6 @@ header {
 .switch input:checked + .switch-track { background:var(--gradient); }
 .switch input:checked + .switch-track .switch-thumb { transform:translateX(16px); }
 
-.alert { padding:12px 14px; border-radius:10px; font-size:13px; display:flex; gap:10px; align-items:flex-start; margin-bottom:14px; border:1px solid; }
-.alert-info { background:rgba(59,130,246,.1); border-color:rgba(59,130,246,.3); color:#93c5fd; }
-
 .file-ready { background:var(--card-2); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; align-items:center; gap:12px; margin-bottom:14px; }
 .file-icon { width:40px; height:40px; border-radius:8px; background:var(--gradient); display:grid; place-items:center; flex-shrink:0; }
 
@@ -175,7 +172,7 @@ header {
       <span id="quotaCount">3/3</span> konversi tersisa hari ini • <strong id="planType">Free Plan</strong>
     </div>
     <div style="display:flex; align-items:center; gap:12px;">
-      <span style="font-size:12px; color:var(--muted);">Backend</span>
+      <span style="font-size:12px; color:var(--muted);">Backend: <b id="backendTextDisplay">Otomatis</b></span>
       <div class="status-dot" id="backendStatus"></div>
       <button class="btn btn-ghost btn-sm" id="btnSettings">API Config</button>
     </div>
@@ -194,7 +191,7 @@ header {
           <button class="tab-btn" data-tab="file">Upload File</button>
         </div>
 
-        <!-- PASTE URL TAB (YouTube, SoundCloud) -->
+        <!-- PASTE URL TAB -->
         <div class="tab-content active" id="tab-url">
           <div class="field">
             <label class="label">Tempel URL (YouTube atau SoundCloud)</label>
@@ -204,10 +201,6 @@ header {
             <span id="remoteBtnText">Ambil Audio</span>
             <span class="spinner hidden" id="remoteSpinner"></span>
           </button>
-          <div class="alert alert-info" style="margin-top:12px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-            <div>Backend: <span id="ytBackendHint" style="font-family:monospace;"></span></div>
-          </div>
         </div>
 
         <!-- FILE UPLOAD TAB -->
@@ -220,19 +213,15 @@ header {
           </div>
         </div>
 
-        <!-- API CONFIG IN LEFT PANEL -->
+        <!-- ROBLOX SETTINGS (AUTO STORED) -->
         <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
-          <div class="field">
-            <label class="label">Backend URL</label>
-            <input type="url" class="input" id="backendUrl" value="">
-          </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
             <div class="field">
               <label class="label">User / Group ID</label>
-              <input type="text" class="input" id="userId" placeholder="12345678">
+              <input type="text" class="input" id="userId" placeholder="8377415030">
             </div>
             <div class="field">
-              <label class="label">Tipe</label>
+              <label class="label">Tipe ID</label>
               <select class="select" id="isGroup">
                 <option value="false">User</option>
                 <option value="true">Group</option>
@@ -277,7 +266,7 @@ header {
               <input type="range" class="slider" id="speed" min="50" max="300" value="100">
             </div>
             <div class="control-group">
-              <div class="control-label"><span>Amplify (Penguat Suara)</span><span id="amplifyVal">0 dB</span></div>
+              <div class="control-label"><span>Amplify (Penguat)</span><span id="amplifyVal">0 dB</span></div>
               <input type="range" class="slider" id="amplify" min="-12" max="12" value="0">
             </div>
             <div class="control-group">
@@ -329,7 +318,7 @@ header {
   <div class="panel">
     <div class="panel-header">
       <h2>Upload ke Roblox Open Cloud</h2>
-      <span class="badge-status" id="apiStatus">API belum dikonfigurasi</span>
+      <span class="badge-status" id="apiStatus">API Belum Disimpan</span>
     </div>
     <div class="panel-body">
       <div class="file-ready hidden" id="fileReady">
@@ -351,10 +340,10 @@ header {
 
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
         <button class="btn btn-primary" id="btnUpload" disabled>
-          <span id="uploadText">Upload ke Roblox</span>
+          <span id="uploadText">Upload Langsung ke Roblox</span>
           <span class="spinner hidden" id="uploadSpinner"></span>
         </button>
-        <button class="btn btn-secondary" id="btnConfigApi">Konfigurasi API</button>
+        <button class="btn btn-secondary" id="btnConfigApi">Set Roblox API Key</button>
       </div>
       <div class="log" id="log">
         <div class="log-entry">Selamat datang di LA'PARTY STUDIO Audio Uploader Pro v2</div>
@@ -364,9 +353,9 @@ header {
 
   <!-- PROMO CODE BAR -->
   <div class="panel" style="padding:14px 18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-    <span style="font-size:13px; color:var(--muted);">Punya kode promo? Masukkan di sini untuk membuka kuota unlimited:</span>
+    <span style="font-size:13px; color:var(--muted);">Masukkan kode promo untuk kuota unlimited:</span>
     <div style="display:flex; gap:8px;">
-      <input type="text" class="input" id="promoCode" placeholder="Kode Promo" style="width:180px; padding:6px 10px;">
+      <input type="text" class="input" id="promoCode" placeholder="Kode Promo (cth: LAPARTY)" style="width:200px; padding:6px 10px;">
       <button class="btn btn-secondary btn-sm" id="btnApplyPromo">Klaim</button>
     </div>
   </div>
@@ -374,7 +363,7 @@ header {
   <!-- RIWAYAT KONVERSI PANEL -->
   <div class="panel">
     <div class="panel-header">
-      <h2>Riwayat Konversi</h2>
+      <h2>Riwayat Upload & Konversi</h2>
       <div style="display:flex; gap:8px;">
         <button class="btn btn-secondary btn-sm" id="btnCopyAll"><> Copy All ID</button>
         <button class="btn btn-ghost btn-sm" id="btnDeleteAll" style="color:var(--danger);">Delete All</button>
@@ -405,25 +394,16 @@ header {
 <div id="apiModal" style="position:fixed; inset:0; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); display:none; place-items:center; z-index:1000; padding:20px;">
   <div class="panel" style="width:100%; max-width:480px;">
     <div class="panel-header">
-      <h2>Konfigurasi API Roblox</h2>
+      <h2>Set Roblox Open Cloud API Key</h2>
       <button class="btn btn-ghost btn-sm" id="btnCloseModal">Tutup</button>
     </div>
     <div class="panel-body">
-      <div class="alert alert-info">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10z"/></svg>
-        <div>Kunci API dienkripsi dengan Web Crypto AES-GCM dan disimpan lokal. Tidak pernah dikirim kecuali ke backend Anda.</div>
-      </div>
-      <div class="field">
-        <label class="label">Frase Sandi Enkripsi</label>
-        <input type="password" class="input" id="passphrase" placeholder="Minimal 8 karakter">
-      </div>
       <div class="field">
         <label class="label">Roblox Open Cloud API Key</label>
         <input type="password" class="input" id="apiKey" placeholder="rbx_...">
       </div>
       <div style="display:flex; gap:8px;">
-        <button class="btn btn-primary" id="btnSaveApi" style="flex:1;">Simpan & Enkripsi</button>
-        <button class="btn btn-secondary" id="btnTestApi">Test Koneksi</button>
+        <button class="btn btn-primary" id="btnSaveApi" style="flex:1;">Simpan Permanen</button>
       </div>
       <div id="apiFeedback" style="margin-top:12px; font-size:13px;"></div>
     </div>
@@ -438,7 +418,7 @@ header {
   const $$ = s => document.querySelectorAll(s);
 
   const state = {
-    backend: '',
+    backend: window.location.origin, // OTOMATIS TERHUBUNG KE DOMAIN RENDER SAMA
     audioBuffer: null,
     originalFile: null,
     processedBlob: null,
@@ -452,8 +432,8 @@ header {
     animationId: null,
     uploadId: null,
     pollInterval: null,
-    encryptedKey: null,
-    userId: '',
+    apiKey: '',
+    userId: '8377415030',
     isGroup: false,
     history: [],
     quota: 3,
@@ -479,13 +459,12 @@ header {
     setTimeout(()=>t.remove(), 4000);
   };
 
-  // LOCAL STORAGE
+  // LOCAL STORAGE (AUTO-LOAD & AUTO-SAVE)
   const save = () => {
-    localStorage.setItem('laparty_uploader_v2', JSON.stringify({
-      backend: state.backend,
+    localStorage.setItem('laparty_uploader_v2_auto', JSON.stringify({
       userId: state.userId,
       isGroup: state.isGroup,
-      encryptedKey: state.encryptedKey,
+      apiKey: state.apiKey,
       history: state.history,
       isUnlimited: state.isUnlimited,
       quota: state.quota
@@ -494,19 +473,19 @@ header {
 
   const load = () => {
     try {
-      const d = JSON.parse(localStorage.getItem('laparty_uploader_v2') || '{}');
-      state.backend = d.backend || '';
-      state.userId = d.userId || '';
+      const d = JSON.parse(localStorage.getItem('laparty_uploader_v2_auto') || '{}');
+      state.userId = d.userId || '8377415030';
       state.isGroup = d.isGroup || false;
-      state.encryptedKey = d.encryptedKey || null;
+      state.apiKey = d.apiKey || '';
       state.history = d.history || [];
       state.isUnlimited = d.isUnlimited || false;
       state.quota = d.quota !== undefined ? d.quota : 3;
 
-      $('#backendUrl').value = state.backend;
       $('#userId').value = state.userId;
       $('#isGroup').value = state.isGroup.toString();
-      $('#ytBackendHint').textContent = state.backend || 'Belum diisi';
+      $('#apiKey').value = state.apiKey;
+      $('#backendTextDisplay').textContent = window.location.hostname;
+      
       updateApiStatus();
       updateQuotaDisplay();
       renderHistory();
@@ -523,60 +502,29 @@ header {
     }
   }
 
-  // WEBCRYPTO AES-GCM
-  async function getKey(pass, salt) {
-    const enc = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' },
-      keyMaterial,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt','decrypt']
-    );
-  }
-
-  async function encrypt(text, pass) {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const key = await getKey(pass, salt);
-    const data = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(text));
-    return btoa(JSON.stringify({s:[...salt], i:[...iv], d:[...new Uint8Array(data)]}));
-  }
-
-  async function decrypt(data, pass) {
-    try {
-      const obj = JSON.parse(atob(data));
-      const key = await getKey(pass, new Uint8Array(obj.s));
-      const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(obj.i)}, key, new Uint8Array(obj.d));
-      return new TextDecoder().decode(plain);
-    } catch { return null; }
-  }
-
   function updateApiStatus() {
     const el = $('#apiStatus');
-    if (state.encryptedKey) {
-      el.textContent = 'API Terenkripsi ✓';
-      el.className = 'badge-status encrypted';
+    if (state.apiKey) {
+      el.textContent = 'API Key Tersimpan ✓';
+      el.className = 'badge-status success';
     } else {
-      el.textContent = 'API belum dikonfigurasi';
+      el.textContent = 'API Belum Disimpan';
       el.className = 'badge-status';
     }
   }
 
   // BACKEND HEALTH CHECK
   async function checkBackend() {
-    if (!state.backend) return false;
     try {
       const r = await fetch(state.backend + '/api/health', {signal: AbortSignal.timeout(3000)});
       if (r.ok) {
         $('#backendStatus').className = 'status-dot online';
-        log('Backend terhubung', 'success');
+        log('Backend terhubung secara otomatis!', 'success');
         return true;
       }
     } catch {}
     $('#backendStatus').className = 'status-dot offline';
-    log('Backend offline - periksa Backend URL', 'error');
+    log('Backend offline atau sedang merestart...', 'error');
     return false;
   }
 
@@ -614,14 +562,13 @@ header {
   $('#btnFetchRemote').onclick = async () => {
     const url = $('#remoteUrl').value.trim();
     if (!url) { toast('Masukkan URL!', 'error'); return; }
-    if (!state.backend) { toast('Isi Backend URL terlebih dahulu!', 'error'); return; }
 
     const btn = $('#btnFetchRemote');
     const spinner = $('#remoteSpinner');
     const text = $('#remoteBtnText');
 
     btn.disabled = true; spinner.classList.remove('hidden'); text.textContent = 'Mengambil...';
-    log(`Mengambil remote audio dari: ${url}`);
+    log(`Mengambil audio remote dari: ${url}`);
 
     try {
       const type = url.includes('soundcloud.com') ? 'soundcloud' : 'youtube';
@@ -638,7 +585,7 @@ header {
       toast('Berhasil mengambil audio', 'success');
     } catch(e) {
       log(`Gagal ambil audio: ${e.message}`, 'error');
-      toast('Gagal mengambil. Pastikan backend aktif.', 'error');
+      toast('Gagal mengambil. Cek status backend.', 'error');
     } finally {
       btn.disabled = false; spinner.classList.add('hidden'); text.textContent = 'Ambil Audio';
     }
@@ -783,12 +730,12 @@ header {
   $('#btnProcess').onclick = async () => {
     if (!state.audioBuffer) return;
     if (!state.isUnlimited && state.quota <= 0) {
-      toast('Kuota harian kamu sudah habis! Masukkan kode promo.', 'error');
+      toast('Kuota harian habis! Klaim kode promo.', 'error');
       return;
     }
 
     stopPlay();
-    log('Memproses audio dengan Advanced Settings...');
+    log('Memproses audio...');
     $('#btnProcess').disabled = true;
 
     try {
@@ -815,7 +762,6 @@ header {
 
       source.connect(gainNode).connect(offline.destination);
 
-      // Fade In & Fade Out
       if ($('#fadeIn').checked) {
         gainNode.gain.setValueAtTime(0, 0);
         gainNode.gain.linearRampToValueAtTime(gainFactor, 1.0);
@@ -842,7 +788,7 @@ header {
         updateQuotaDisplay();
       }
 
-      $('#btnUpload').disabled = !state.encryptedKey;
+      $('#btnUpload').disabled = !state.apiKey;
       log(`Konversi Selesai! Ukuran: ${(wavBlob.size/1024).toFixed(1)} KB`, 'success');
       toast('Konversi Berhasil!', 'success');
 
@@ -905,63 +851,26 @@ header {
   $('#btnConfigApi, #btnSettings').onclick = () => $('#apiModal').style.display = 'grid';
   $('#btnCloseModal').onclick = () => $('#apiModal').style.display = 'none';
 
-  $('#btnSaveApi').onclick = async () => {
-    const pass = $('#passphrase').value;
+  $('#btnSaveApi').onclick = () => {
     const key = $('#apiKey').value.trim();
-    if (pass.length < 8) { $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">Frase sandi minimal 8 karakter</span>'; return; }
-    if (!key.startsWith('rbx_') && key.length < 20) { $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">API key tidak valid</span>'; return; }
-
-    try {
-      state.encryptedKey = await encrypt(key, pass);
-      state.userId = $('#userId').value.trim();
-      state.isGroup = $('#isGroup').value === 'true';
-      state.backend = $('#backendUrl').value.trim();
-      save();
-      updateApiStatus();
-      $('#apiFeedback').innerHTML = '<span style="color:var(--success)">✓ API key berhasil dienkripsi dan disimpan</span>';
-      checkBackend();
-      setTimeout(()=>$('#apiModal').style.display='none', 1000);
-      $('#btnUpload').disabled = !state.processedBlob;
-      log('API key disimpan (terenkripsi)', 'success');
-    } catch(e) {
-      $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">Gagal enkripsi</span>';
+    if (!key.startsWith('rbx_') && key.length < 20) {
+      $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">API key tidak valid</span>';
+      return;
     }
+
+    state.apiKey = key;
+    save();
+    updateApiStatus();
+    $('#apiFeedback').innerHTML = '<span style="color:var(--success)">✓ API Key Berhasil Disimpan Permanen</span>';
+    setTimeout(()=>$('#apiModal').style.display='none', 800);
+    $('#btnUpload').disabled = !state.processedBlob;
+    log('API key tersimpan di browser', 'success');
   };
 
-  $('#btnTestApi').onclick = async () => {
-    const pass = $('#passphrase').value;
-    if (!state.encryptedKey) { toast('Simpan API key dulu', 'error'); return; }
-    const key = await decrypt(state.encryptedKey, pass);
-    if (!key) { toast('Frase sandi salah', 'error'); return; }
-
-    $('#btnTestApi').disabled = true;
-    try {
-      const res = await fetch(state.backend + '/api/roblox/verify', {
-        method: 'POST',
-        headers: {'x-api-key': key, 'Content-Type':'application/json'},
-        body: JSON.stringify({userId: $('#userId').value, isGroup: $('#isGroup').value==='true'})
-      });
-      if (res.ok) {
-        toast('API key valid!', 'success');
-        log('Verifikasi API berhasil', 'success');
-      } else {
-        throw new Error(await res.text());
-      }
-    } catch(e) {
-      toast('Verifikasi gagal', 'error');
-    }
-    $('#btnTestApi').disabled = false;
-  };
-
-  // UPLOAD TO ROBLOX
+  // DIRECT UPLOAD TO ROBLOX (NO MANUAL PASSPHRASE PROMPT)
   $('#btnUpload').onclick = async () => {
     if (!state.processedBlob) { toast('Konversi audio dulu!', 'error'); return; }
-    if (!state.encryptedKey) { $('#apiModal').style.display='grid'; return; }
-
-    const pass = prompt('Masukkan frase sandi untuk dekripsi API key:');
-    if (!pass) return;
-    const apiKey = await decrypt(state.encryptedKey, pass);
-    if (!apiKey) { toast('Frase sandi salah!', 'error'); return; }
+    if (!state.apiKey) { $('#apiModal').style.display='grid'; return; }
 
     $('#btnUpload').disabled = true;
     $('#uploadSpinner').classList.remove('hidden');
@@ -979,7 +888,7 @@ header {
 
       const res = await fetch(`${state.backend}/api/roblox/upload`, {
         method: 'POST',
-        headers: {'x-api-key': apiKey},
+        headers: {'x-api-key': state.apiKey},
         body: form
       });
 
@@ -991,14 +900,14 @@ header {
       log(`Upload diterima. Operation ID: ${state.uploadId}`, 'success');
       toast('Upload terkirim ke Roblox', 'success');
 
-      pollStatus(state.uploadId, apiKey);
+      pollStatus(state.uploadId, state.apiKey);
     } catch(e) {
       log('Upload gagal: '+e.message, 'error');
       toast('Upload gagal', 'error');
       $('#btnUpload').disabled = false;
     }
     $('#uploadSpinner').classList.add('hidden');
-    $('#uploadText').textContent = 'Upload ke Roblox';
+    $('#uploadText').textContent = 'Upload Langsung ke Roblox';
   };
 
   function pollStatus(id, apiKey) {
@@ -1036,7 +945,7 @@ header {
     }, 3000);
   }
 
-  // RIWAYAT KONVERSI
+  // HISTORY
   function addHistoryItem(name, dur, status, assetId = '-') {
     state.history.unshift({ time: new Date().toLocaleTimeString(), name, dur, status, assetId });
     renderHistory();
@@ -1098,8 +1007,7 @@ header {
     }
   };
 
-  // EVENT LISTENERS CONFIG
-  $('#backendUrl').onchange = e => { state.backend = e.target.value.trim(); $('#ytBackendHint').textContent = state.backend; save(); checkBackend(); };
+  // EVENT LISTENERS FOR AUTO-SAVE
   $('#userId').onchange = e => { state.userId = e.target.value.trim(); save(); };
   $('#isGroup').onchange = e => { state.isGroup = e.target.value==='true'; save(); };
 
