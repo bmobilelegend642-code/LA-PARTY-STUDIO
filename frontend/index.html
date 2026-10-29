@@ -129,15 +129,28 @@ header {
 .switch input:checked + .switch-track { background:var(--gradient); }
 .switch input:checked + .switch-track .switch-thumb { transform:translateX(16px); }
 
-.log { background:#080910; border:1px solid var(--border); border-radius:10px; padding:10px; height:120px; overflow-y:auto; font-family:ui-monospace, monospace; font-size:12px; }
+.alert { padding:12px 14px; border-radius:10px; font-size:13px; display:flex; gap:10px; align-items:flex-start; margin-bottom:14px; border:1px solid; }
+.alert-info { background:rgba(59,130,246,.1); border-color:rgba(59,130,246,.3); color:#93c5fd; }
+
+.file-ready { background:var(--card-2); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.file-icon { width:40px; height:40px; border-radius:8px; background:var(--gradient); display:grid; place-items:center; flex-shrink:0; }
+
+.progress-steps { display:flex; gap:8px; margin:16px 0; }
+.step { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.step-fill { height:100%; width:0%; background:var(--gradient); transition:width .3s; }
+
+.log { background:#080910; border:1px solid var(--border); border-radius:10px; padding:10px; height:130px; overflow-y:auto; font-family:ui-monospace, monospace; font-size:12px; }
 .log-entry { margin-bottom:4px; color:var(--muted); }
 .log-entry.success { color:var(--success); }
 .log-entry.error { color:var(--danger); }
 .log-entry.info { color:var(--accent2); }
 
 .table-history { width:100%; border-collapse:collapse; font-size:13px; text-align:left; }
-.table-history th { padding:10px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:600; }
-.table-history td { padding:10px; border-bottom:1px solid var(--border); }
+.table-history th { padding:12px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:600; }
+.table-history td { padding:12px; border-bottom:1px solid var(--border); }
+
+.spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.2); border-top-color:white; border-radius:50%; animation:spin .8s linear infinite; display:inline-block; }
+@keyframes spin { to{transform:rotate(360deg)} }
 
 .badge-status { padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; background:var(--card-2); border:1px solid var(--border); }
 .badge-status.encrypted, .badge-status.success { color:var(--success); border-color:rgba(34,197,94,.3); }
@@ -159,7 +172,7 @@ header {
       </div>
     </div>
     <div class="quota-info">
-      <span id="quotaCount">3/3</span> konversi tersisa hari ini • <strong>Free Plan</strong>
+      <span id="quotaCount">3/3</span> konversi tersisa hari ini • <strong id="planType">Free Plan</strong>
     </div>
     <div style="display:flex; align-items:center; gap:12px;">
       <span style="font-size:12px; color:var(--muted);">Backend</span>
@@ -181,15 +194,20 @@ header {
           <button class="tab-btn" data-tab="file">Upload File</button>
         </div>
 
-        <!-- PASTE URL TAB (YouTube, SoundCloud, TikTok, Spotify) -->
+        <!-- PASTE URL TAB (YouTube, SoundCloud) -->
         <div class="tab-content active" id="tab-url">
           <div class="field">
-            <label class="label">Tempel URL (YouTube, SoundCloud, TikTok, Spotify)</label>
-            <input type="url" class="input" id="remoteUrl" placeholder="https://youtube.com/watch?v=... atau SoundCloud/TikTok">
+            <label class="label">Tempel URL (YouTube atau SoundCloud)</label>
+            <input type="url" class="input" id="remoteUrl" placeholder="https://youtube.com/watch?v=... atau SoundCloud">
           </div>
           <button class="btn btn-primary" style="width:100%" id="btnFetchRemote">
             <span id="remoteBtnText">Ambil Audio</span>
+            <span class="spinner hidden" id="remoteSpinner"></span>
           </button>
+          <div class="alert alert-info" style="margin-top:12px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <div>Backend: <span id="ytBackendHint" style="font-family:monospace;"></span></div>
+          </div>
         </div>
 
         <!-- FILE UPLOAD TAB -->
@@ -202,7 +220,7 @@ header {
           </div>
         </div>
 
-        <!-- API CONFIG -->
+        <!-- API CONFIG IN LEFT PANEL -->
         <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
           <div class="field">
             <label class="label">Backend URL</label>
@@ -276,7 +294,17 @@ header {
             <label class="switch">
               <input type="checkbox" id="normalize" checked>
               <span class="switch-track"><span class="switch-thumb"></span></span>
-              <span style="font-size:13px;">Normalize Peak Audio</span>
+              <span style="font-size:13px;">Normalize Peak</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" id="fadeIn">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span style="font-size:13px;">Fade In 1s</span>
+            </label>
+            <label class="switch">
+              <input type="checkbox" id="fadeOut">
+              <span class="switch-track"><span class="switch-thumb"></span></span>
+              <span style="font-size:13px;">Fade Out 1s</span>
             </label>
           </div>
 
@@ -304,12 +332,32 @@ header {
       <span class="badge-status" id="apiStatus">API belum dikonfigurasi</span>
     </div>
     <div class="panel-body">
+      <div class="file-ready hidden" id="fileReady">
+        <div class="file-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:14px;" id="readyName">audio.wav</div>
+          <div style="font-size:12px; color:var(--muted);"><span id="readySize">0 MB</span> • <span id="readyDuration">0s</span> • Siap upload</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btnDownloadReady">Download</button>
+      </div>
+
+      <div class="progress-steps">
+        <div class="step"><div class="step-fill" id="step1"></div></div>
+        <div class="step"><div class="step-fill" id="step2"></div></div>
+        <div class="step"><div class="step-fill" id="step3"></div></div>
+      </div>
+
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
-        <button class="btn btn-primary" id="btnUpload" disabled>Upload ke Roblox</button>
+        <button class="btn btn-primary" id="btnUpload" disabled>
+          <span id="uploadText">Upload ke Roblox</span>
+          <span class="spinner hidden" id="uploadSpinner"></span>
+        </button>
         <button class="btn btn-secondary" id="btnConfigApi">Konfigurasi API</button>
       </div>
       <div class="log" id="log">
-        <div class="log-entry">Selamat datang di LA'PARTY STUDIO Audio Uploader Pro</div>
+        <div class="log-entry">Selamat datang di LA'PARTY STUDIO Audio Uploader Pro v2</div>
       </div>
     </div>
   </div>
@@ -328,7 +376,6 @@ header {
     <div class="panel-header">
       <h2>Riwayat Konversi</h2>
       <div style="display:flex; gap:8px;">
-        <button class="btn btn-primary btn-sm" id="btnPublishAll">Publish All</button>
         <button class="btn btn-secondary btn-sm" id="btnCopyAll"><> Copy All ID</button>
         <button class="btn btn-ghost btn-sm" id="btnDeleteAll" style="color:var(--danger);">Delete All</button>
       </div>
@@ -354,6 +401,35 @@ header {
   </div>
 </div>
 
+<!-- API MODAL -->
+<div id="apiModal" style="position:fixed; inset:0; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); display:none; place-items:center; z-index:1000; padding:20px;">
+  <div class="panel" style="width:100%; max-width:480px;">
+    <div class="panel-header">
+      <h2>Konfigurasi API Roblox</h2>
+      <button class="btn btn-ghost btn-sm" id="btnCloseModal">Tutup</button>
+    </div>
+    <div class="panel-body">
+      <div class="alert alert-info">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10z"/></svg>
+        <div>Kunci API dienkripsi dengan Web Crypto AES-GCM dan disimpan lokal. Tidak pernah dikirim kecuali ke backend Anda.</div>
+      </div>
+      <div class="field">
+        <label class="label">Frase Sandi Enkripsi</label>
+        <input type="password" class="input" id="passphrase" placeholder="Minimal 8 karakter">
+      </div>
+      <div class="field">
+        <label class="label">Roblox Open Cloud API Key</label>
+        <input type="password" class="input" id="apiKey" placeholder="rbx_...">
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary" id="btnSaveApi" style="flex:1;">Simpan & Enkripsi</button>
+        <button class="btn btn-secondary" id="btnTestApi">Test Koneksi</button>
+      </div>
+      <div id="apiFeedback" style="margin-top:12px; font-size:13px;"></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toasts"></div>
 
 <script>
@@ -364,16 +440,24 @@ header {
   const state = {
     backend: '',
     audioBuffer: null,
+    originalFile: null,
     processedBlob: null,
     isPlaying: false,
     audioContext: null,
     sourceNode: null,
-    duration: 0,
+    startTime: 0,
+    pauseTime: 0,
     trimStart: 0,
+    duration: 0,
+    animationId: null,
+    uploadId: null,
+    pollInterval: null,
     encryptedKey: null,
     userId: '',
     isGroup: false,
-    history: []
+    history: [],
+    quota: 3,
+    isUnlimited: false
   };
 
   const log = (msg, type = '') => {
@@ -390,10 +474,111 @@ header {
     const c = $('#toasts');
     const t = document.createElement('div');
     t.className = 'toast';
-    t.innerHTML = `<div style="font-weight:600; margin-bottom:2px;">${type==='error'?'Error':'Info'}</div><div style="font-size:13px; color:var(--muted);">${msg}</div>`;
+    t.innerHTML = `<div style="font-weight:600; margin-bottom:2px;">${type==='error'?'Error':type==='success'?'Berhasil':'Info'}</div><div style="font-size:13px; color:var(--muted);">${msg}</div>`;
     c.appendChild(t);
     setTimeout(()=>t.remove(), 4000);
   };
+
+  // LOCAL STORAGE
+  const save = () => {
+    localStorage.setItem('laparty_uploader_v2', JSON.stringify({
+      backend: state.backend,
+      userId: state.userId,
+      isGroup: state.isGroup,
+      encryptedKey: state.encryptedKey,
+      history: state.history,
+      isUnlimited: state.isUnlimited,
+      quota: state.quota
+    }));
+  };
+
+  const load = () => {
+    try {
+      const d = JSON.parse(localStorage.getItem('laparty_uploader_v2') || '{}');
+      state.backend = d.backend || '';
+      state.userId = d.userId || '';
+      state.isGroup = d.isGroup || false;
+      state.encryptedKey = d.encryptedKey || null;
+      state.history = d.history || [];
+      state.isUnlimited = d.isUnlimited || false;
+      state.quota = d.quota !== undefined ? d.quota : 3;
+
+      $('#backendUrl').value = state.backend;
+      $('#userId').value = state.userId;
+      $('#isGroup').value = state.isGroup.toString();
+      $('#ytBackendHint').textContent = state.backend || 'Belum diisi';
+      updateApiStatus();
+      updateQuotaDisplay();
+      renderHistory();
+    } catch {}
+  };
+
+  function updateQuotaDisplay() {
+    if (state.isUnlimited) {
+      $('#quotaCount').textContent = '∞';
+      $('#planType').textContent = 'Pro Plan';
+    } else {
+      $('#quotaCount').textContent = `${state.quota}/3`;
+      $('#planType').textContent = 'Free Plan';
+    }
+  }
+
+  // WEBCRYPTO AES-GCM
+  async function getKey(pass, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt','decrypt']
+    );
+  }
+
+  async function encrypt(text, pass) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await getKey(pass, salt);
+    const data = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(text));
+    return btoa(JSON.stringify({s:[...salt], i:[...iv], d:[...new Uint8Array(data)]}));
+  }
+
+  async function decrypt(data, pass) {
+    try {
+      const obj = JSON.parse(atob(data));
+      const key = await getKey(pass, new Uint8Array(obj.s));
+      const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(obj.i)}, key, new Uint8Array(obj.d));
+      return new TextDecoder().decode(plain);
+    } catch { return null; }
+  }
+
+  function updateApiStatus() {
+    const el = $('#apiStatus');
+    if (state.encryptedKey) {
+      el.textContent = 'API Terenkripsi ✓';
+      el.className = 'badge-status encrypted';
+    } else {
+      el.textContent = 'API belum dikonfigurasi';
+      el.className = 'badge-status';
+    }
+  }
+
+  // BACKEND HEALTH CHECK
+  async function checkBackend() {
+    if (!state.backend) return false;
+    try {
+      const r = await fetch(state.backend + '/api/health', {signal: AbortSignal.timeout(3000)});
+      if (r.ok) {
+        $('#backendStatus').className = 'status-dot online';
+        log('Backend terhubung', 'success');
+        return true;
+      }
+    } catch {}
+    $('#backendStatus').className = 'status-dot offline';
+    log('Backend offline - periksa Backend URL', 'error');
+    return false;
+  }
 
   // TABS
   $$('.tab-btn').forEach(btn => {
@@ -405,15 +590,59 @@ header {
     };
   });
 
-  // AUDIO LOADING & PROCESSING
+  // FILE & REMOTE FETCHING
   $('#btnPickFile').onclick = () => $('#fileInput').click();
   $('#fileInput').onchange = e => e.target.files[0] && handleFile(e.target.files[0]);
 
+  const drop = $('#dropzone');
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('dragover'); };
+  drop.ondragleave = () => drop.classList.remove('dragover');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
+
   async function handleFile(file) {
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a)$/i.test(file.name)) {
+      toast('Format tidak didukung', 'error'); return;
+    }
+    if (file.size > 20*1024*1024) { toast('File >20MB', 'error'); return; }
+    state.originalFile = file;
     $('#sourceBadge').textContent = 'File Lokal';
     $('#audioName').value = file.name.replace(/\.[^/.]+$/, '');
     await loadAudio(file);
+    log(`File dimuat: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
   }
+
+  $('#btnFetchRemote').onclick = async () => {
+    const url = $('#remoteUrl').value.trim();
+    if (!url) { toast('Masukkan URL!', 'error'); return; }
+    if (!state.backend) { toast('Isi Backend URL terlebih dahulu!', 'error'); return; }
+
+    const btn = $('#btnFetchRemote');
+    const spinner = $('#remoteSpinner');
+    const text = $('#remoteBtnText');
+
+    btn.disabled = true; spinner.classList.remove('hidden'); text.textContent = 'Mengambil...';
+    log(`Mengambil remote audio dari: ${url}`);
+
+    try {
+      const type = url.includes('soundcloud.com') ? 'soundcloud' : 'youtube';
+      const endpoint = `${state.backend}/api/download/${type}?url=${encodeURIComponent(url)}`;
+      const res = await fetch(endpoint, {signal: AbortSignal.timeout(120000)});
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+
+      state.originalFile = new File([blob], `remote_audio.mp3`, {type: blob.type});
+      $('#sourceBadge').textContent = type === 'soundcloud' ? 'SoundCloud' : 'YouTube';
+      $('#audioName').value = `Audio ${Date.now()}`;
+      await loadAudio(blob);
+      log('Audio remote berhasil diambil', 'success');
+      toast('Berhasil mengambil audio', 'success');
+    } catch(e) {
+      log(`Gagal ambil audio: ${e.message}`, 'error');
+      toast('Gagal mengambil. Pastikan backend aktif.', 'error');
+    } finally {
+      btn.disabled = false; spinner.classList.add('hidden'); text.textContent = 'Ambil Audio';
+    }
+  };
 
   async function loadAudio(fileOrBlob) {
     try {
@@ -427,28 +656,41 @@ header {
       $('#editorState').classList.remove('hidden');
       $('#durationBadge').textContent = formatTime(state.duration);
       $('#timeDisplay').textContent = `00:00 / ${formatTime(state.duration)}`;
-      
+
       $('#trimStart').max = state.duration;
       drawWaveform();
     } catch(e) {
-      toast('Gagal memuat audio', 'error');
+      console.error(e);
+      toast('Gagal decode audio', 'error');
     }
   }
 
   function drawWaveform() {
     const canvas = $('#waveform');
     const ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.offsetWidth * dpr;
+    canvas.height = canvas.offsetHeight * dpr;
+    ctx.scale(dpr, dpr);
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+
+    ctx.clearRect(0,0,width,height);
     if (!state.audioBuffer) return;
 
     const data = state.audioBuffer.getChannelData(0);
-    const step = Math.ceil(data.length / canvas.width);
-    const amp = canvas.height/2;
+    const step = Math.ceil(data.length / width);
+    const amp = height/2;
 
-    ctx.fillStyle = '#7c3aed';
-    for (let i=0; i<canvas.width; i++) {
+    ctx.fillStyle = '#080910';
+    ctx.fillRect(0,0,width,height);
+
+    const grad = ctx.createLinearGradient(0,0,0,height);
+    grad.addColorStop(0, '#7c3aed');
+    grad.addColorStop(1, '#3b82f6');
+    ctx.fillStyle = grad;
+
+    for (let i=0; i<width; i++) {
       let min=1, max=-1;
       for (let j=0; j<step; j++) {
         const datum = data[(i*step)+j];
@@ -465,16 +707,90 @@ header {
     return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
   }
 
-  // SLIDERS LISTENERS
+  // PLAYER CONTROLS
+  $('#btnPlay').onclick = () => state.isPlaying ? pausePlay() : startPlay();
+  $('#btnStop').onclick = stopPlay;
+
+  function startPlay() {
+    if (!state.audioBuffer || !state.audioContext) return;
+    stopPlay();
+    state.sourceNode = state.audioContext.createBufferSource();
+    state.sourceNode.buffer = state.audioBuffer;
+    state.sourceNode.playbackRate.value = parseFloat($('#speed').value) / 100;
+    
+    const gainNode = state.audioContext.createGain();
+    const ampDb = parseFloat($('#amplify').value);
+    gainNode.gain.value = Math.pow(10, ampDb / 20);
+
+    state.sourceNode.connect(gainNode).connect(state.audioContext.destination);
+
+    const offset = state.pauseTime || state.trimStart;
+    const maxDur = parseFloat($('#maxDuration').value);
+    const dur = Math.min(state.duration - offset, maxDur);
+
+    state.startTime = state.audioContext.currentTime - offset;
+    state.sourceNode.start(0, offset, dur);
+    state.isPlaying = true;
+    $('#btnPlay').textContent = 'Pause';
+
+    state.sourceNode.onended = () => { if(state.isPlaying) stopPlay(); };
+    updateProgress();
+  }
+
+  function pausePlay() {
+    if (!state.isPlaying) return;
+    state.pauseTime = state.audioContext.currentTime - state.startTime;
+    state.sourceNode?.stop();
+    state.isPlaying = false;
+    $('#btnPlay').textContent = 'Play';
+    cancelAnimationFrame(state.animationId);
+  }
+
+  function stopPlay() {
+    state.sourceNode?.stop();
+    state.sourceNode = null;
+    state.isPlaying = false;
+    state.pauseTime = 0;
+    $('#btnPlay').textContent = 'Play';
+    $('#progressFill').style.width = '0%';
+    cancelAnimationFrame(state.animationId);
+  }
+
+  function updateProgress() {
+    if (!state.isPlaying) return;
+    const current = state.audioContext.currentTime - state.startTime;
+    const maxDur = parseFloat($('#maxDuration').value);
+    const percent = Math.min(100, (current / maxDur) * 100);
+    $('#progressFill').style.width = percent + '%';
+    $('#timeDisplay').textContent = `${formatTime(current)} / ${formatTime(maxDur)}`;
+    if (current >= maxDur) { stopPlay(); return; }
+    state.animationId = requestAnimationFrame(updateProgress);
+  }
+
+  // ADVANCED SETTINGS CONTROL LISTENERS
   $('#speed').oninput = e => $('#speedVal').textContent = (e.target.value/100).toFixed(1)+'x';
   $('#amplify').oninput = e => $('#amplifyVal').textContent = e.target.value+' dB';
   $('#maxDuration').oninput = e => $('#maxDurLabel').textContent = e.target.value+'s';
+  $('#trimStart').oninput = e => {
+    state.trimStart = parseFloat(e.target.value);
+    $('#startLabel').textContent = state.trimStart.toFixed(1)+'s';
+    const start = (state.trimStart / state.duration) * 100;
+    $('#trimRegion').style.left = start + '%';
+    $('#trimRegion').style.width = '100%';
+  };
 
-  // PROCESS AUDIO WITH ADVANCED SETTINGS
+  // PROCESS AUDIO WITH EFFECTS
   $('#btnProcess').onclick = async () => {
     if (!state.audioBuffer) return;
+    if (!state.isUnlimited && state.quota <= 0) {
+      toast('Kuota harian kamu sudah habis! Masukkan kode promo.', 'error');
+      return;
+    }
+
+    stopPlay();
     log('Memproses audio dengan Advanced Settings...');
-    
+    $('#btnProcess').disabled = true;
+
     try {
       const speed = parseFloat($('#speed').value) / 100;
       const amplifyDb = parseFloat($('#amplify').value);
@@ -498,26 +814,242 @@ header {
       gainNode.gain.value = gainFactor;
 
       source.connect(gainNode).connect(offline.destination);
+
+      // Fade In & Fade Out
+      if ($('#fadeIn').checked) {
+        gainNode.gain.setValueAtTime(0, 0);
+        gainNode.gain.linearRampToValueAtTime(gainFactor, 1.0);
+      }
+      if ($('#fadeOut').checked) {
+        const renderDur = duration / speed;
+        gainNode.gain.setValueAtTime(gainFactor, Math.max(0, renderDur - 1.0));
+        gainNode.gain.linearRampToValueAtTime(0, renderDur);
+      }
+
       source.start(0, start, duration);
 
       const rendered = await offline.startRendering();
-      state.processedBlob = new Blob([rendered], {type: 'audio/wav'});
-      
-      $('#btnUpload').disabled = false;
-      log('Audio siap diunggah!', 'success');
+      const wavBlob = audioBufferToWav(rendered, $('#normalize').checked);
+      state.processedBlob = wavBlob;
+
+      $('#fileReady').classList.remove('hidden');
+      $('#readyName').textContent = ($('#audioName').value || 'audio') + '.wav';
+      $('#readySize').textContent = (wavBlob.size/1024/1024).toFixed(2) + ' MB';
+      $('#readyDuration').textContent = (duration/speed).toFixed(1) + 's';
+
+      if (!state.isUnlimited) {
+        state.quota--;
+        updateQuotaDisplay();
+      }
+
+      $('#btnUpload').disabled = !state.encryptedKey;
+      log(`Konversi Selesai! Ukuran: ${(wavBlob.size/1024).toFixed(1)} KB`, 'success');
       toast('Konversi Berhasil!', 'success');
 
-      // Tambah ke riwayat
-      addHistoryItem($('#audioName').value || 'Untitled', (duration/speed).toFixed(1)+'s', 'Ready');
+      addHistoryItem($('#audioName').value || 'Untitled', (duration/speed).toFixed(1)+'s', 'Siap Upload');
+      save();
     } catch(e) {
-      log('Gagal proses: '+e.message, 'error');
+      console.error(e);
+      log('Gagal proses audio: '+e.message, 'error');
+      toast('Gagal memproses audio', 'error');
+    }
+    $('#btnProcess').disabled = false;
+  };
+
+  function audioBufferToWav(buffer, normalize=false) {
+    const numChannels = buffer.numberOfChannels;
+    const length = buffer.length * numChannels * 2;
+    const arrayBuffer = new ArrayBuffer(44 + length);
+    const view = new DataView(arrayBuffer);
+    let pos = 0;
+
+    const writeString = s => { for(let i=0;i<s.length;i++) view.setUint8(pos++, s.charCodeAt(i)); };
+    const writeUint32 = v => { view.setUint32(pos, v, true); pos+=4; };
+    const writeUint16 = v => { view.setUint16(pos, v, true); pos+=2; };
+
+    writeString('RIFF'); writeUint32(36+length); writeString('WAVE');
+    writeString('fmt '); writeUint32(16); writeUint16(1); writeUint16(numChannels);
+    writeUint32(buffer.sampleRate); writeUint32(buffer.sampleRate*numChannels*2);
+    writeUint16(numChannels*2); writeUint16(16);
+    writeString('data'); writeUint32(length);
+
+    let max = 0;
+    if (normalize) {
+      for (let c=0;c<numChannels;c++) {
+        const d = buffer.getChannelData(c);
+        for (let i=0;i<d.length;i++) max = Math.max(max, Math.abs(d[i]));
+      }
+    }
+    const norm = normalize && max>0 ? 0.95/max : 1;
+
+    for (let i=0; i<buffer.length; i++) {
+      for (let c=0; c<numChannels; c++) {
+        let sample = buffer.getChannelData(c)[i] * norm;
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(pos, sample * 0x7FFF, true);
+        pos += 2;
+      }
+    }
+    return new Blob([view], {type: 'audio/wav'});
+  }
+
+  $('#btnDownloadReady').onclick = () => {
+    if (!state.processedBlob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(state.processedBlob);
+    a.download = $('#readyName').textContent;
+    a.click();
+  };
+
+  // API MODAL & CONFIG
+  $('#btnConfigApi, #btnSettings').onclick = () => $('#apiModal').style.display = 'grid';
+  $('#btnCloseModal').onclick = () => $('#apiModal').style.display = 'none';
+
+  $('#btnSaveApi').onclick = async () => {
+    const pass = $('#passphrase').value;
+    const key = $('#apiKey').value.trim();
+    if (pass.length < 8) { $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">Frase sandi minimal 8 karakter</span>'; return; }
+    if (!key.startsWith('rbx_') && key.length < 20) { $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">API key tidak valid</span>'; return; }
+
+    try {
+      state.encryptedKey = await encrypt(key, pass);
+      state.userId = $('#userId').value.trim();
+      state.isGroup = $('#isGroup').value === 'true';
+      state.backend = $('#backendUrl').value.trim();
+      save();
+      updateApiStatus();
+      $('#apiFeedback').innerHTML = '<span style="color:var(--success)">✓ API key berhasil dienkripsi dan disimpan</span>';
+      checkBackend();
+      setTimeout(()=>$('#apiModal').style.display='none', 1000);
+      $('#btnUpload').disabled = !state.processedBlob;
+      log('API key disimpan (terenkripsi)', 'success');
+    } catch(e) {
+      $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">Gagal enkripsi</span>';
     }
   };
 
-  // HISTORY SYSTEM
+  $('#btnTestApi').onclick = async () => {
+    const pass = $('#passphrase').value;
+    if (!state.encryptedKey) { toast('Simpan API key dulu', 'error'); return; }
+    const key = await decrypt(state.encryptedKey, pass);
+    if (!key) { toast('Frase sandi salah', 'error'); return; }
+
+    $('#btnTestApi').disabled = true;
+    try {
+      const res = await fetch(state.backend + '/api/roblox/verify', {
+        method: 'POST',
+        headers: {'x-api-key': key, 'Content-Type':'application/json'},
+        body: JSON.stringify({userId: $('#userId').value, isGroup: $('#isGroup').value==='true'})
+      });
+      if (res.ok) {
+        toast('API key valid!', 'success');
+        log('Verifikasi API berhasil', 'success');
+      } else {
+        throw new Error(await res.text());
+      }
+    } catch(e) {
+      toast('Verifikasi gagal', 'error');
+    }
+    $('#btnTestApi').disabled = false;
+  };
+
+  // UPLOAD TO ROBLOX
+  $('#btnUpload').onclick = async () => {
+    if (!state.processedBlob) { toast('Konversi audio dulu!', 'error'); return; }
+    if (!state.encryptedKey) { $('#apiModal').style.display='grid'; return; }
+
+    const pass = prompt('Masukkan frase sandi untuk dekripsi API key:');
+    if (!pass) return;
+    const apiKey = await decrypt(state.encryptedKey, pass);
+    if (!apiKey) { toast('Frase sandi salah!', 'error'); return; }
+
+    $('#btnUpload').disabled = true;
+    $('#uploadSpinner').classList.remove('hidden');
+    $('#uploadText').textContent = 'Mengupload...';
+    $('#step1').style.width = '100%'; $('#step2').style.width = '50%';
+    log('Memulai upload ke Roblox Open Cloud...');
+
+    try {
+      const form = new FormData();
+      form.append('file', state.processedBlob, $('#readyName').textContent);
+      form.append('nama', $('#audioName').value || 'Untitled');
+      form.append('deskripsi', $('#audioDesc').value || '');
+      form.append('userId', state.userId);
+      form.append('isGroup', state.isGroup);
+
+      const res = await fetch(`${state.backend}/api/roblox/upload`, {
+        method: 'POST',
+        headers: {'x-api-key': apiKey},
+        body: form
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = await res.json();
+      state.uploadId = data.id || data.assetId || data.operationId;
+      $('#step2').style.width = '100%';
+      log(`Upload diterima. Operation ID: ${state.uploadId}`, 'success');
+      toast('Upload terkirim ke Roblox', 'success');
+
+      pollStatus(state.uploadId, apiKey);
+    } catch(e) {
+      log('Upload gagal: '+e.message, 'error');
+      toast('Upload gagal', 'error');
+      $('#btnUpload').disabled = false;
+    }
+    $('#uploadSpinner').classList.add('hidden');
+    $('#uploadText').textContent = 'Upload ke Roblox';
+  };
+
+  function pollStatus(id, apiKey) {
+    clearInterval(state.pollInterval);
+    let attempts = 0;
+    state.pollInterval = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await fetch(`${state.backend}/api/roblox/status?id=${encodeURIComponent(id)}`, {
+          headers: {'x-api-key': apiKey}
+        });
+        if (!res.ok) throw new Error('status error');
+        const data = await res.json();
+        const status = (data.status || '').toLowerCase();
+
+        if (status.includes('success') || status.includes('complete') || data.assetId) {
+          $('#step3').style.width = '100%';
+          clearInterval(state.pollInterval);
+          log(`✓ SELESAI! Asset ID: ${data.assetId}`, 'success');
+          toast(`Upload sukses! Asset ID: ${data.assetId}`, 'success');
+          updateLastHistoryAssetId(data.assetId, 'Selesai');
+          $('#btnUpload').disabled = false;
+        } else if (status.includes('fail') || status.includes('error')) {
+          clearInterval(state.pollInterval);
+          log('✗ Upload gagal di Roblox', 'error');
+          toast('Gagal diproses Roblox', 'error');
+          updateLastHistoryAssetId('-', 'Gagal');
+          $('#btnUpload').disabled = false;
+        }
+
+        if (attempts > 40) { clearInterval(state.pollInterval); log('Timeout monitoring', 'error'); }
+      } catch(e) {
+        log('Gagal cek status', 'error');
+      }
+    }, 3000);
+  }
+
+  // RIWAYAT KONVERSI
   function addHistoryItem(name, dur, status, assetId = '-') {
-    state.history.push({ time: new Date().toLocaleTimeString(), name, dur, status, assetId });
+    state.history.unshift({ time: new Date().toLocaleTimeString(), name, dur, status, assetId });
     renderHistory();
+    save();
+  }
+
+  function updateLastHistoryAssetId(assetId, status) {
+    if (state.history.length > 0) {
+      state.history[0].assetId = assetId;
+      state.history[0].status = status;
+      renderHistory();
+      save();
+    }
   }
 
   function renderHistory() {
@@ -538,7 +1070,7 @@ header {
   }
 
   $('#btnCopyAll').onclick = () => {
-    const ids = state.history.map(h => h.assetId).filter(id => id !== '-').join('\n');
+    const ids = state.history.map(h => h.assetId).filter(id => id && id !== '-').join('\n');
     if (ids) {
       navigator.clipboard.writeText(ids);
       toast('Semua Asset ID berhasil disalin!');
@@ -550,16 +1082,30 @@ header {
   $('#btnDeleteAll').onclick = () => {
     state.history = [];
     renderHistory();
+    save();
     toast('Riwayat dibersihkan.');
   };
 
   $('#btnApplyPromo').onclick = () => {
-    const code = $('#promoCode').value.trim();
-    if (code) {
-      $('#quotaCount').textContent = '∞';
-      toast('Kode Promo Diaktifkan! Kuota Unlimited.', 'success');
+    const code = $('#promoCode').value.trim().toUpperCase();
+    if (code === "LAPARTY" || code === "PRO" || code.length >= 4) {
+      state.isUnlimited = true;
+      updateQuotaDisplay();
+      save();
+      toast('Kode Promo Berhasil Diaktifkan! Kuota Unlimited.', 'success');
+    } else {
+      toast('Kode promo tidak valid', 'error');
     }
   };
+
+  // EVENT LISTENERS CONFIG
+  $('#backendUrl').onchange = e => { state.backend = e.target.value.trim(); $('#ytBackendHint').textContent = state.backend; save(); checkBackend(); };
+  $('#userId').onchange = e => { state.userId = e.target.value.trim(); save(); };
+  $('#isGroup').onchange = e => { state.isGroup = e.target.value==='true'; save(); };
+
+  load();
+  checkBackend();
+  setInterval(checkBackend, 30000);
 })();
 </script>
 </body>
