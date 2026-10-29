@@ -41,9 +41,9 @@ function cookiesFlag() {
 
 function ytdlpCmd(url, outputPath, extraFlags = '') {
   const cookies = cookiesFlag();
-  // --extractor-args "youtube:player_client=web" menghindari bot-check di beberapa kasus
+  // Menggunakan player_client android/ios untuk menembus bot-check YouTube tanpa cookie
   return `yt-dlp -x --audio-format mp3 --no-playlist \
-    --extractor-args "youtube:player_client=web,web_creator" \
+    --extractor-args "youtube:player_client=android,ios,web" \
     --no-check-certificates \
     --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
     ${cookies} ${extraFlags} \
