@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Roblox Audio Uploader Pro v2</title>
+<title>LA'PARTY STUDIO - Roblox Audio Uploader Pro v2</title>
 <style>
-:root {
+:root, [data-theme="dark"] {
   --bg: #05050a;
   --card: #11121c;
   --card-2: #151725;
@@ -19,13 +19,34 @@
   --danger: #ef4444;
   --warning: #f59e0b;
   --gradient: linear-gradient(135deg, var(--accent1), var(--accent2));
+  --log-bg: #080910;
+  --header-bg: rgba(17,18,28,.7);
 }
-* { margin:0; padding:0; box-sizing:border-box; }
+
+[data-theme="light"] {
+  --bg: #f3f4f6;
+  --card: #ffffff;
+  --card-2: #f9fafb;
+  --border: #e5e7eb;
+  --border-hover: #d1d5db;
+  --text: #111827;
+  --muted: #6b7280;
+  --accent1: #7c3aed;
+  --accent2: #2563eb;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --gradient: linear-gradient(135deg, var(--accent1), var(--accent2));
+  --log-bg: #f8fafc;
+  --header-bg: rgba(255,255,255,.8);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; transition: background-color .2s ease, border-color .2s ease, color .2s ease; }
 html, body { height:100%; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: radial-gradient(1200px 800px at 85% -10%, rgba(124,58,237,.18), transparent 60%),
-              radial-gradient(900px 700px at -15% 30%, rgba(59,130,246,.15), transparent 60%),
+  background: radial-gradient(1200px 800px at 85% -10%, rgba(124,58,237,.12), transparent 60%),
+              radial-gradient(900px 700px at -15% 30%, rgba(59,130,246,.12), transparent 60%),
               var(--bg);
   color: var(--text);
   line-height: 1.6;
@@ -33,9 +54,9 @@ body {
 }
 .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
 header {
-  display:flex; align-items:center; justify-content:space-between;
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
   margin-bottom: 24px; padding: 16px 20px;
-  background: rgba(17,18,28,.7); backdrop-filter: blur(12px);
+  background: var(--header-bg); backdrop-filter: blur(12px);
   border:1px solid var(--border); border-radius: 16px;
 }
 .logo { display:flex; align-items:center; gap:12px; }
@@ -44,7 +65,10 @@ header {
   display:grid; place-items:center; box-shadow: 0 8px 24px rgba(124,58,237,.3);
 }
 .logo h1 { font-size:18px; font-weight:700; letter-spacing:-.3px; }
-.badge { font-size:11px; padding:3px 8px; border-radius:20px; background:var(--gradient); font-weight:600; margin-left:8px; }
+.badge { font-size:11px; padding:3px 8px; border-radius:20px; background:var(--gradient); font-weight:600; margin-left:8px; color:white; }
+.quota-info { font-size:13px; color:var(--muted); background:var(--card-2); padding:6px 14px; border-radius:20px; border:1px solid var(--border); }
+.quota-info span { color:var(--accent2); font-weight:600; }
+
 .status-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); transition:.3s; }
 .status-dot.online { background:var(--success); box-shadow:0 0 10px var(--success); }
 .status-dot.offline { background:var(--danger); }
@@ -54,9 +78,9 @@ header {
 
 .panel {
   background: var(--card); border:1px solid var(--border); border-radius:18px;
-  overflow:hidden; box-shadow: 0 10px 40px rgba(0,0,0,.3);
+  overflow:hidden; box-shadow: 0 10px 40px rgba(0,0,0,.08); margin-bottom:20px;
 }
-.panel-header { padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.panel-header { padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
 .panel-header h2 { font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
 .panel-body { padding:18px; }
 
@@ -66,7 +90,7 @@ header {
   font-size:13px; font-weight:500; border-radius:8px; cursor:pointer; transition:.2s;
   display:flex; align-items:center; justify-content:center; gap:6px;
 }
-.tab-btn.active { background:var(--card); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
+.tab-btn.active { background:var(--card); color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.1); }
 .tab-btn:hover:not(.active){ color:var(--text); }
 
 .tab-content { display:none; }
@@ -80,14 +104,12 @@ header {
   border-radius:10px; color:var(--text); font-size:14px; transition:.2s; font-family:inherit;
 }
 .input:focus, .textarea:focus { outline:none; border-color:var(--accent1); box-shadow:0 0 0 3px rgba(124,58,237,.15); }
-.textarea { resize:vertical; min-height:70px; }
 
 .dropzone {
   border:2px dashed var(--border); border-radius:14px; padding:32px 20px; text-align:center;
   cursor:pointer; transition:.2s; background:var(--card-2);
 }
 .dropzone:hover, .dropzone.dragover { border-color:var(--accent1); background:rgba(124,58,237,.08); }
-.dropzone-icon { width:48px; height:48px; margin:0 auto 12px; opacity:.6; }
 
 .btn {
   padding:10px 16px; border:none; border-radius:10px; font-size:14px; font-weight:600;
@@ -98,18 +120,17 @@ header {
 .btn-primary { background:var(--gradient); color:white; box-shadow:0 4px 16px rgba(124,58,237,.25); }
 .btn-primary:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 6px 20px rgba(124,58,237,.35); }
 .btn-secondary { background:var(--card-2); color:var(--text); border:1px solid var(--border); }
-.btn-secondary:hover:not(:disabled){ border-color:var(--border-hover); background:#1a1c2a; }
+.btn-secondary:hover:not(:disabled){ border-color:var(--border-hover); }
 .btn-ghost { background:transparent; color:var(--muted); }
 .btn-ghost:hover { color:var(--text); background:var(--card-2); }
 .btn-sm { padding:7px 12px; font-size:13px; }
 
 .waveform-container {
-  background:#080910; border:1px solid var(--border); border-radius:12px; padding:12px;
+  background:var(--log-bg); border:1px solid var(--border); border-radius:12px; padding:12px;
   margin-bottom:16px; position:relative; overflow:hidden;
 }
 #waveform { width:100%; height:120px; display:block; cursor:pointer; }
-.wave-overlay { position:absolute; top:12px; bottom:12px; left:12px; right:12px; pointer-events:none; }
-.trim-region { position:absolute; top:0; bottom:0; background:rgba(124,58,237,.2); border-left:2px solid var(--accent1); border-right:2px solid var(--accent1); }
+.trim-region { position:absolute; top:0; bottom:0; background:rgba(124,58,237,.2); border-left:2px solid var(--accent1); border-right:2px solid var(--accent1); pointer-events:none; }
 
 .player-controls { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
 .time-display { font-variant-numeric:tabular-nums; font-size:13px; color:var(--muted); min-width:100px; }
@@ -120,8 +141,7 @@ header {
 .control-group { background:var(--card-2); padding:12px; border-radius:10px; border:1px solid var(--border); }
 .control-label { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px; }
 .slider { width:100%; height:4px; -webkit-appearance:none; appearance:none; background:var(--border); border-radius:2px; outline:none; }
-.slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:white; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3); }
-.slider::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:white; cursor:pointer; border:none; }
+.slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--text); cursor:pointer; }
 
 .switch { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
 .switch input { display:none; }
@@ -130,13 +150,6 @@ header {
 .switch input:checked + .switch-track { background:var(--gradient); }
 .switch input:checked + .switch-track .switch-thumb { transform:translateX(16px); }
 
-.alert { padding:12px 14px; border-radius:10px; font-size:13px; display:flex; gap:10px; align-items:flex-start; margin-bottom:14px; border:1px solid; }
-.alert-warning { background:rgba(245,158,11,.1); border-color:rgba(245,158,11,.3); color:#fcd34d; }
-.alert-success { background:rgba(34,197,94,.1); border-color:rgba(34,197,94,.3); color:#86efac; }
-.alert-danger { background:rgba(239,68,68,.1); border-color:rgba(239,68,68,.3); color:#fca5a5; }
-.alert-info { background:rgba(59,130,246,.1); border-color:rgba(59,130,246,.3); color:#93c5fd; }
-
-.upload-zone { margin-top:20px; }
 .file-ready { background:var(--card-2); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; align-items:center; gap:12px; margin-bottom:14px; }
 .file-icon { width:40px; height:40px; border-radius:8px; background:var(--gradient); display:grid; place-items:center; flex-shrink:0; }
 
@@ -144,26 +157,25 @@ header {
 .step { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
 .step-fill { height:100%; width:0%; background:var(--gradient); transition:width .3s; }
 
-.log { background:#080910; border:1px solid var(--border); border-radius:10px; padding:10px; height:140px; overflow-y:auto; font-family:ui-monospace, monospace; font-size:12px; }
+.log { background:var(--log-bg); border:1px solid var(--border); border-radius:10px; padding:10px; height:130px; overflow-y:auto; font-family:ui-monospace, monospace; font-size:12px; }
 .log-entry { margin-bottom:4px; color:var(--muted); }
 .log-entry.success { color:var(--success); }
 .log-entry.error { color:var(--danger); }
 .log-entry.info { color:var(--accent2); }
 
+.table-history { width:100%; border-collapse:collapse; font-size:13px; text-align:left; }
+.table-history th { padding:12px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:600; }
+.table-history td { padding:12px; border-bottom:1px solid var(--border); }
+
 .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.2); border-top-color:white; border-radius:50%; animation:spin .8s linear infinite; display:inline-block; }
 @keyframes spin { to{transform:rotate(360deg)} }
-.hidden { display:none !important; }
 
-.toast-container { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
-.toast { padding:12px 16px; background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.4); min-width:280px; animation:slideIn .3s; }
-@keyframes slideIn { from{transform:translateX(100%); opacity:0} to{transform:translateX(0); opacity:1} }
-
-footer { margin-top:24px; text-align:center; color:var(--muted); font-size:12px; padding:16px; }
-footer strong { color:var(--text); }
-
-.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .badge-status { padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; background:var(--card-2); border:1px solid var(--border); }
-.badge-status.encrypted { color:var(--success); border-color:rgba(34,197,94,.3); }
+.badge-status.encrypted, .badge-status.success { color:var(--success); border-color:rgba(34,197,94,.3); }
+
+.hidden { display:none !important; }
+.toast-container { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+.toast { padding:12px 16px; background:var(--card); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.15); min-width:280px; }
 </style>
 </head>
 <body>
@@ -171,22 +183,25 @@ footer strong { color:var(--text); }
   <header>
     <div class="logo">
       <div class="logo-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-        </svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
       </div>
       <div>
-        <h1>Roblox Audio Uploader Pro<span class="badge">v2</span></h1>
+        <h1>LA'PARTY STUDIO <span class="badge">PRO v2</span></h1>
       </div>
+    </div>
+    <div class="quota-info">
+      <span id="quotaCount">∞</span> konversi tersisa • <strong id="planType">Pro Plan (Owner)</strong>
+    </div>
     <div style="display:flex; align-items:center; gap:12px;">
-      <span style="font-size:12px; color:var(--muted);">Backend</span>
+      <button class="btn btn-secondary btn-sm" id="btnThemeToggle" title="Ubah Mode Tampilan">🌙 Dark</button>
+      <span style="font-size:12px; color:var(--muted);">Backend: <b id="backendTextDisplay">Localhost</b></span>
       <div class="status-dot" id="backendStatus"></div>
-      <button class="btn btn-ghost btn-sm" id="btnSettings">API</button>
+      <button class="btn btn-ghost btn-sm" id="btnSettings">API Config</button>
     </div>
   </header>
 
   <div class="grid">
-    <!-- LEFT -->
+    <!-- LEFT PANEL -->
     <div class="panel">
       <div class="panel-header">
         <h2>Sumber Audio</h2>
@@ -194,88 +209,38 @@ footer strong { color:var(--text); }
       </div>
       <div class="panel-body">
         <div class="tabs">
-          <button class="tab-btn active" data-tab="file">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            File
-          </button>
-          <button class="tab-btn" data-tab="youtube">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.8 15.5v-7l6.2 3.5-6.2 3.5z"/></svg>
-            YouTube
-          </button>
-          <button class="tab-btn" data-tab="soundcloud">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 16.5c.7.5 1.5.8 2.4.8 1.2 0 2.3-.5 3.1-1.3.3-.3.5-.6.7-1H7v1.5zM18.5 12c0-1.2-.4-2.3-1.1-3.2-.1 0-.1 0-.2-.1.1-.3.1-.6.1-.9 0-2.2-1.8-4-4-4-1.1 0-2.1.4-2.8 1.1-.2-.1-.5-.1-.7-.1-1.5 0-2.7 1.2-2.7 2.7 0 .2 0 .3.1.5-1.3.4-2.2 1.6-2.2 3 0 .5.1 1 .3 1.4H4c-.6 0-1 .4-1 1s.4 1 1 1h14.5c1.4 0 2.5-1.1 2.5-2.5 0-1.3-1-2.4-2.3-2.5.2-.3.3-.6.3-1z"/></svg>
-            SoundCloud
+          <button class="tab-btn active" data-tab="url">Paste URL</button>
+          <button class="tab-btn" data-tab="file">Upload File</button>
+        </div>
+
+        <!-- PASTE URL TAB -->
+        <div class="tab-content active" id="tab-url">
+          <div class="field">
+            <label class="label">Tempel URL (YouTube atau SoundCloud)</label>
+            <input type="url" class="input" id="remoteUrl" placeholder="https://youtube.com/watch?v=...">
+          </div>
+          <button class="btn btn-primary" style="width:100%" id="btnFetchRemote">
+            <span id="remoteBtnText">Ambil Audio</span>
+            <span class="spinner hidden" id="remoteSpinner"></span>
           </button>
         </div>
 
-        <!-- FILE TAB -->
-        <div class="tab-content active" id="tab-file">
+        <!-- FILE UPLOAD TAB -->
+        <div class="tab-content" id="tab-file">
           <div class="dropzone" id="dropzone">
-            <div class="dropzone-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            </div>
             <div style="font-weight:600; margin-bottom:4px;">Drop file audio di sini</div>
             <div style="font-size:12px; color:var(--muted); margin-bottom:12px;">MP3, OGG, WAV • Maks 20MB</div>
             <button class="btn btn-secondary btn-sm" id="btnPickFile">Pilih File</button>
             <input type="file" id="fileInput" accept="audio/*,.mp3,.ogg,.wav,.m4a" hidden>
           </div>
         </div>
-
-        <!-- YOUTUBE TAB -->
-        <div class="tab-content" id="tab-youtube">
-          <div class="field">
-            <label class="label">URL YouTube</label>
-            <input type="url" class="input" id="ytUrl" placeholder="https://youtube.com/watch?v=...">
-          </div>
-          <button class="btn btn-primary" style="width:100%" id="btnFetchYT">
-            <span id="ytBtnText">Ambil Audio</span>
-            <span class="spinner hidden" id="ytSpinner"></span>
-          </button>
-          <div class="alert alert-info" style="margin-top:12px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-            <div>Membutuhkan backend berjalan di <span id="ytBackendHint" style="font-family:monospace;"></span></div>
-          </div>
-        </div>
-
-        <!-- SOUNDCLOUD TAB -->
-        <div class="tab-content" id="tab-soundcloud">
-          <div class="field">
-            <label class="label">URL SoundCloud</label>
-            <input type="url" class="input" id="scUrl" placeholder="https://soundcloud.com/...">
-          </div>
-          <button class="btn btn-primary" style="width:100%" id="btnFetchSC">
-            <span id="scBtnText">Ambil Audio</span>
-            <span class="spinner hidden" id="scSpinner"></span>
-          </button>
-        </div>
-
-        <!-- API CONFIG -->
-        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
-          <div class="field">
-            <label class="label">Backend URL</label>
-            <input type="url" class="input" id="backendUrl" value="">
-          </div>
-          <div class="grid-2">
-            <div class="field">
-              <label class="label">User / Group ID</label>
-              <input type="text" class="input" id="userId" placeholder="12345678">
-            </div>
-            <div class="field">
-              <label class="label">Tipe</label>
-              <select class="select" id="isGroup">
-                <option value="false">User</option>
-                <option value="true">Group</option>
-              </select>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
-    <!-- RIGHT -->
+    <!-- RIGHT PANEL -->
     <div class="panel">
       <div class="panel-header">
-        <h2>Editor & Pratinjau</h2>
+        <h2>Editor & Advanced Settings</h2>
         <div style="display:flex; gap:8px;">
           <span class="badge-status" id="durationBadge">00:00</span>
           <span class="badge-status hidden" id="trimBadge">Trim Aktif</span>
@@ -283,57 +248,47 @@ footer strong { color:var(--text); }
       </div>
       <div class="panel-body">
         <div id="emptyState" style="text-align:center; padding:40px 20px; color:var(--muted);">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="opacity:.3; margin-bottom:16px;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
           <div style="font-weight:600; color:var(--text); margin-bottom:4px;">Belum ada audio</div>
-          <div style="font-size:13px;">Pilih file atau ambil dari YouTube/SoundCloud</div>
+          <div style="font-size:13px;">Tempel URL atau pilih file audio lokal</div>
         </div>
 
         <div id="editorState" class="hidden">
           <div class="waveform-container">
             <canvas id="waveform"></canvas>
-            <div class="wave-overlay"><div class="trim-region" id="trimRegion"></div></div>
+            <div class="trim-region" id="trimRegion" style="position:absolute; top:12px; bottom:12px;"></div>
           </div>
 
           <div class="player-controls">
-            <button class="btn btn-secondary btn-sm" id="btnPlay">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            </button>
+            <button class="btn btn-secondary btn-sm" id="btnPlay">Play</button>
             <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
             <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
-            <button class="btn btn-ghost btn-sm" id="btnStop">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
-            </button>
-          </div>
-
-          <div id="autoTrimWarning" class="alert alert-warning hidden">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <div><strong>Durasi melebihi 7 menit (420 detik).</strong> Roblox membatasi audio. Aktifkan auto-trim.</div>
+            <button class="btn btn-ghost btn-sm" id="btnStop">Stop</button>
           </div>
 
           <div class="controls-grid">
             <div class="control-group">
-              <div class="control-label"><span>Mulai</span><span id="startLabel">0.0s</span></div>
+              <div class="control-label"><span>Speed</span><span id="speedVal">1.0x</span></div>
+              <input type="range" class="slider" id="speed" min="50" max="300" value="100">
+            </div>
+            <div class="control-group">
+              <div class="control-label"><span>Amplify (Penguat)</span><span id="amplifyVal">0 dB</span></div>
+              <input type="range" class="slider" id="amplify" min="-12" max="12" value="0">
+            </div>
+            <div class="control-group">
+              <div class="control-label"><span>Mulai Trim</span><span id="startLabel">0.0s</span></div>
               <input type="range" class="slider" id="trimStart" min="0" max="100" value="0" step="0.1">
             </div>
             <div class="control-group">
-              <div class="control-label"><span>Selesai</span><span id="endLabel">0.0s</span></div>
-              <input type="range" class="slider" id="trimEnd" min="0" max="100" value="100" step="0.1">
-            </div>
-            <div class="control-group">
-              <div class="control-label"><span>Volume</span><span id="volLabel">100%</span></div>
-              <input type="range" class="slider" id="volume" min="0" max="200" value="100">
-            </div>
-            <div class="control-group">
-              <div class="control-label"><span>Kecepatan</span><span id="speedLabel">1.0x</span></div>
-              <input type="range" class="slider" id="speed" min="50" max="150" value="100">
+              <div class="control-label"><span>Max Duration</span><span id="maxDurLabel">420s</span></div>
+              <input type="range" class="slider" id="maxDuration" min="30" max="420" value="420">
             </div>
           </div>
 
           <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
             <label class="switch">
-              <input type="checkbox" id="autoTrim" checked>
+              <input type="checkbox" id="normalize" checked>
               <span class="switch-track"><span class="switch-thumb"></span></span>
-              <span style="font-size:13px;">Auto-trim >420s</span>
+              <span style="font-size:13px;">Normalize Peak</span>
             </label>
             <label class="switch">
               <input type="checkbox" id="fadeIn">
@@ -345,38 +300,30 @@ footer strong { color:var(--text); }
               <span class="switch-track"><span class="switch-thumb"></span></span>
               <span style="font-size:13px;">Fade Out 1s</span>
             </label>
-            <label class="switch">
-              <input type="checkbox" id="normalize">
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-              <span style="font-size:13px;">Normalize</span>
-            </label>
           </div>
 
-          <div class="grid-2">
-            <div class="field" style="margin-bottom:0;">
-              <label class="label">Nama Audio</label>
-              <input type="text" class="input" id="audioName" placeholder="My Awesome Audio" maxlength="50">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="field">
+              <label class="label">Nama Audio (Opsional)</label>
+              <input type="text" class="input" id="audioName" placeholder="My Audio Track">
             </div>
-            <div class="field" style="margin-bottom:0;">
-              <label class="label">Deskripsi (opsional)</label>
-              <input type="text" class="input" id="audioDesc" placeholder="Uploaded via Pro Uploader" maxlength="200">
+            <div class="field">
+              <label class="label">Deskripsi (Opsional)</label>
+              <input type="text" class="input" id="audioDesc" placeholder="LA'PARTY Upload">
             </div>
           </div>
 
-          <button class="btn btn-primary" style="width:100%; margin-top:14px;" id="btnProcess">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            Proses & Siapkan File
-          </button>
+          <button class="btn btn-primary" style="width:100%; margin-top:10px;" id="btnProcess">Konversi Audio & Siapkan</button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- UPLOAD PANEL -->
-  <div class="panel upload-zone">
+  <div class="panel">
     <div class="panel-header">
-      <h2>Upload ke Roblox</h2>
-      <span class="badge-status" id="apiStatus">API belum dikonfigurasi</span>
+      <h2>Upload ke Roblox Open Cloud</h2>
+      <span class="badge-status" id="apiStatus">API Belum Disimpan</span>
     </div>
     <div class="panel-body">
       <div class="file-ready hidden" id="fileReady">
@@ -384,7 +331,7 @@ footer strong { color:var(--text); }
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </div>
         <div style="flex:1;">
-          <div style="font-weight:600; font-size:14px;" id="readyName">audio.mp3</div>
+          <div style="font-weight:600; font-size:14px;" id="readyName">audio.wav</div>
           <div style="font-size:12px; color:var(--muted);"><span id="readySize">0 MB</span> • <span id="readyDuration">0s</span> • Siap upload</div>
         </div>
         <button class="btn btn-ghost btn-sm" id="btnDownloadReady">Download</button>
@@ -396,52 +343,74 @@ footer strong { color:var(--text); }
         <div class="step"><div class="step-fill" id="step3"></div></div>
       </div>
 
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
         <button class="btn btn-primary" id="btnUpload" disabled>
-          <span id="uploadText">Upload ke Roblox</span>
+          <span id="uploadText">Upload Langsung ke Roblox</span>
           <span class="spinner hidden" id="uploadSpinner"></span>
         </button>
-        <button class="btn btn-secondary" id="btnConfigApi">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Konfigurasi API
-        </button>
+        <button class="btn btn-secondary" id="btnConfigApi">Set Roblox API Key</button>
       </div>
-
-      <div class="log" id="log" style="margin-top:14px;">
-        <div class="log-entry">Selamat datang di Roblox Audio Uploader Pro v2</div>
-        <div class="log-entry">→ Siapkan backend Node.js untuk fitur penuh</div>
+      <div class="log" id="log">
+        <div class="log-entry">Selamat datang di LA'PARTY STUDIO Audio Uploader Pro v2 (Localhost)</div>
       </div>
     </div>
   </div>
 
-  <footer>
-    <strong>Jalankan backend Node.js untuk fitur penuh.</strong> Backend menangani download YouTube/SoundCloud & upload ke Roblox Open Cloud. API key Anda dienkripsi secara lokal dengan AES-GCM.
-  </footer>
+  <!-- RIWAYAT KONVERSI PANEL -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Riwayat Upload & Konversi</h2>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary btn-sm" id="btnCopyAll"><> Copy All ID</button>
+        <button class="btn btn-ghost btn-sm" id="btnDeleteAll" style="color:var(--danger);">Delete All</button>
+      </div>
+    </div>
+    <div class="panel-body" style="padding:0; overflow-x:auto;">
+      <table class="table-history">
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>Nama Audio</th>
+            <th>Durasi</th>
+            <th>Asset ID</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody">
+          <tr>
+            <td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">Belum ada riwayat konversi.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- API MODAL -->
 <div id="apiModal" style="position:fixed; inset:0; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); display:none; place-items:center; z-index:1000; padding:20px;">
   <div class="panel" style="width:100%; max-width:480px;">
     <div class="panel-header">
-      <h2>Konfigurasi API Roblox</h2>
+      <h2>Set Roblox Open Cloud API Key</h2>
       <button class="btn btn-ghost btn-sm" id="btnCloseModal">Tutup</button>
     </div>
     <div class="panel-body">
-      <div class="alert alert-info">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10z"/></svg>
-        <div>Kunci API dienkripsi dengan Web Crypto AES-GCM dan disimpan lokal. Tidak pernah dikirim kecuali ke backend Anda.</div>
-      </div>
-      <div class="field">
-        <label class="label">Frase Sandi Enkripsi</label>
-        <input type="password" class="input" id="passphrase" placeholder="Minimal 8 karakter">
-      </div>
       <div class="field">
         <label class="label">Roblox Open Cloud API Key</label>
         <input type="password" class="input" id="apiKey" placeholder="rbx_...">
       </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn btn-primary" id="btnSaveApi" style="flex:1;">Simpan & Enkripsi</button>
-        <button class="btn btn-secondary" id="btnTestApi">Test Koneksi</button>
+      <div class="field">
+        <label class="label">User ID atau Group ID (Opsional)</label>
+        <input type="text" class="input" id="userIdInput" placeholder="8377415030">
+      </div>
+      <div class="field">
+        <label class="label">Tipe Pemilik Asset</label>
+        <select class="select" id="isGroupInput">
+          <option value="false">User Pribadi</option>
+          <option value="true">Group Roblox</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn btn-primary" id="btnSaveApi" style="flex:1;">Simpan Permanen</button>
       </div>
       <div id="apiFeedback" style="margin-top:12px; font-size:13px;"></div>
     </div>
@@ -454,9 +423,10 @@ footer strong { color:var(--text); }
 (() => {
   const $ = s => document.querySelector(s);
   const $$ = s => document.querySelectorAll(s);
-  
+
   const state = {
-    backend: ',
+    // Otomatis deteksi: jika buka dari localhost pakai port 3000, jika online pakai origin
+    backend: 'http://localhost:3000',
     audioBuffer: null,
     originalFile: null,
     processedBlob: null,
@@ -466,18 +436,18 @@ footer strong { color:var(--text); }
     startTime: 0,
     pauseTime: 0,
     trimStart: 0,
-    trimEnd: 0,
     duration: 0,
     animationId: null,
-    uploadId: null,
-    pollInterval: null,
-    encryptedKey: null,
-    userId: '',
-    isGroup: false,
+    apiKey: '',
+    userId: '8377415030',
+    isGroup: 'false',
+    history: [],
+    theme: 'dark'
   };
 
-  const log = (msg, type='') => {
+  const log = (msg, type = '') => {
     const el = $('#log');
+    if (!el) return;
     const entry = document.createElement('div');
     entry.className = `log-entry ${type}`;
     entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
@@ -494,85 +464,73 @@ footer strong { color:var(--text); }
     setTimeout(()=>t.remove(), 4000);
   };
 
+  // THEME
+  function applyTheme(theme) {
+    state.theme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    $('#btnThemeToggle').textContent = theme === 'dark' ? '🌙 Dark' : '☀️ Light';
+    if (state.audioBuffer) drawWaveform();
+  }
+
+  $('#btnThemeToggle').onclick = () => {
+    applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+    save();
+  };
+
   // STORAGE
   const save = () => {
-    localStorage.setItem('raup_v2', JSON.stringify({
-      backend: state.backend,
+    localStorage.setItem('laparty_uploader_local_v2', JSON.stringify({
+      apiKey: state.apiKey,
       userId: state.userId,
       isGroup: state.isGroup,
-      encryptedKey: state.encryptedKey,
-      lastName: $('#audioName').value,
-      lastDesc: $('#audioDesc').value,
+      history: state.history,
+      theme: state.theme
     }));
   };
+
   const load = () => {
     try {
-      const d = JSON.parse(localStorage.getItem('raup_v2') || '{}');
-      state.backend = d.backend || '';
-      state.userId = d.userId || '';
-      state.isGroup = d.isGroup || false;
-      state.encryptedKey = d.encryptedKey || null;
-      $('#backendUrl').value = state.backend;
-      $('#userId').value = state.userId;
-      $('#isGroup').value = state.isGroup.toString();
-      $('#audioName').value = d.lastName || '';
-      $('#audioDesc').value = d.lastDesc || '';
-      $('#ytBackendHint').textContent = state.backend;
+      const d = JSON.parse(localStorage.getItem('laparty_uploader_local_v2') || '{}');
+      state.apiKey = d.apiKey || '';
+      state.userId = d.userId || '8377415030';
+      state.isGroup = d.isGroup || 'false';
+      state.history = d.history || [];
+      state.theme = d.theme || 'dark';
+
+      $('#apiKey').value = state.apiKey;
+      $('#userIdInput').value = state.userId;
+      $('#isGroupInput').value = state.isGroup;
+      $('#backendTextDisplay').textContent = 'Localhost:3000';
+      
+      applyTheme(state.theme);
       updateApiStatus();
+      renderHistory();
     } catch {}
   };
 
-  // ENCRYPTION
-  async function getKey(pass, salt) {
-    const enc = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' },
-      keyMaterial,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt','decrypt']
-    );
-  }
-  async function encrypt(text, pass) {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const key = await getKey(pass, salt);
-    const data = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(text));
-    return btoa(JSON.stringify({s:[...salt], i:[...iv], d:[...new Uint8Array(data)]}));
-  }
-  async function decrypt(data, pass) {
-    try {
-      const obj = JSON.parse(atob(data));
-      const key = await getKey(pass, new Uint8Array(obj.s));
-      const plain = await crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(obj.i)}, key, new Uint8Array(obj.d));
-      return new TextDecoder().decode(plain);
-    } catch { return null; }
-  }
-
   function updateApiStatus() {
     const el = $('#apiStatus');
-    if (state.encryptedKey) {
-      el.textContent = 'API Terenkripsi ✓';
-      el.className = 'badge-status encrypted';
+    if (state.apiKey) {
+      el.textContent = 'API Key Tersimpan ✓';
+      el.className = 'badge-status success';
     } else {
-      el.textContent = 'API belum dikonfigurasi';
+      el.textContent = 'API Belum Disimpan';
       el.className = 'badge-status';
     }
   }
 
-  // BACKEND CHECK
+  // CHECK BACKEND HEALTH
   async function checkBackend() {
     try {
       const r = await fetch(state.backend + '/api/health', {signal: AbortSignal.timeout(3000)});
       if (r.ok) {
         $('#backendStatus').className = 'status-dot online';
-        log('Backend terhubung', 'success');
+        log('Backend localhost terhubung sempurna!', 'success');
         return true;
       }
     } catch {}
     $('#backendStatus').className = 'status-dot offline';
-    log('Backend offline - jalankan di ' + state.backend, 'error');
+    log('Backend offline. Pastikan "node server.js" menyala di terminal!', 'error');
     return false;
   }
 
@@ -586,15 +544,14 @@ footer strong { color:var(--text); }
     };
   });
 
-  // FILE HANDLING
+  // FILE & REMOTE FETCHING
   $('#btnPickFile').onclick = () => $('#fileInput').click();
   $('#fileInput').onchange = e => e.target.files[0] && handleFile(e.target.files[0]);
-  
+
   const drop = $('#dropzone');
   drop.ondragover = e => { e.preventDefault(); drop.classList.add('dragover'); };
   drop.ondragleave = () => drop.classList.remove('dragover');
   drop.ondrop = e => { e.preventDefault(); drop.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
-  drop.onclick = () => $('#fileInput').click();
 
   async function handleFile(file) {
     if (!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a)$/i.test(file.name)) {
@@ -608,6 +565,60 @@ footer strong { color:var(--text); }
     log(`File dimuat: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
   }
 
+  // YOUTUBE FETCH (LOCAL BACKEND BYPASS 429)
+  $('#btnFetchRemote').onclick = async () => {
+    const url = $('#remoteUrl').value.trim();
+    if (!url) { toast('Masukkan URL!', 'error'); return; }
+
+    const btn = $('#btnFetchRemote');
+    const spinner = $('#remoteSpinner');
+    const text = $('#remoteBtnText');
+
+    btn.disabled = true; spinner.classList.remove('hidden'); text.textContent = 'Mengambil via Localhost...';
+    log(`Mengambil audio dari URL: ${url}`);
+
+    try {
+      const type = url.includes('soundcloud.com') ? 'soundcloud' : 'youtube';
+      const endpoint = `${state.backend}/api/${type}`;
+      
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url }),
+        signal: AbortSignal.timeout(180000)
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${res.status}`);
+      }
+      
+      const data = await res.json();
+      if (!data.success || !data.audio) throw new Error('Data audio base64 tidak valid');
+
+      const binaryString = atob(data.audio);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes.buffer], { type: 'audio/mpeg' });
+
+      state.originalFile = new File([blob], data.filename || `remote_audio.mp3`, {type: blob.type});
+      $('#sourceBadge').textContent = type === 'soundcloud' ? 'SoundCloud' : 'YouTube';
+      $('#audioName').value = `Audio ${Date.now()}`;
+      
+      await loadAudio(blob);
+      log('Audio berhasil diambil dari YouTube tanpa blokir!', 'success');
+      toast('Berhasil mengambil audio', 'success');
+      
+    } catch(e) {
+      log(`Gagal ambil audio: ${e.message}`, 'error');
+      toast('Gagal mengambil. Cek terminal server lokal.', 'error');
+    } finally {
+      btn.disabled = false; spinner.classList.add('hidden'); text.textContent = 'Ambil Audio';
+    }
+  };
+
   async function loadAudio(fileOrBlob) {
     try {
       if (!state.audioContext) state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -615,36 +626,17 @@ footer strong { color:var(--text); }
       state.audioBuffer = await state.audioContext.decodeAudioData(arrayBuffer);
       state.duration = state.audioBuffer.duration;
       state.trimStart = 0;
-      state.trimEnd = state.duration;
-      
+
       $('#emptyState').classList.add('hidden');
       $('#editorState').classList.remove('hidden');
       $('#durationBadge').textContent = formatTime(state.duration);
       $('#timeDisplay').textContent = `00:00 / ${formatTime(state.duration)}`;
-      
+
       $('#trimStart').max = state.duration;
-      $('#trimEnd').max = state.duration;
-      $('#trimEnd').value = state.duration;
-      $('#endLabel').textContent = state.duration.toFixed(1)+'s';
-      
       drawWaveform();
-      updateTrimRegion();
-      
-      if (state.duration > 420) {
-        $('#autoTrimWarning').classList.remove('hidden');
-        if ($('#autoTrim').checked) {
-          state.trimEnd = 420;
-          $('#trimEnd').value = 420;
-          $('#endLabel').textContent = '420.0s';
-          toast('Auto-trim aktif: dipotong ke 420 detik', 'info');
-        }
-      } else {
-        $('#autoTrimWarning').classList.add('hidden');
-      }
     } catch(e) {
       console.error(e);
       toast('Gagal decode audio', 'error');
-      log('Error decode: '+e.message, 'error');
     }
   }
 
@@ -652,30 +644,27 @@ footer strong { color:var(--text); }
     const canvas = $('#waveform');
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const w = canvas.offsetWidth * dpr;
-    const h = canvas.offsetHeight * dpr;
-    canvas.width = w; canvas.height = h;
+    canvas.width = canvas.offsetWidth * dpr;
+    canvas.height = canvas.offsetHeight * dpr;
     ctx.scale(dpr, dpr);
     const width = canvas.offsetWidth;
     const height = canvas.offsetHeight;
-    
+
     ctx.clearRect(0,0,width,height);
     if (!state.audioBuffer) return;
-    
+
     const data = state.audioBuffer.getChannelData(0);
     const step = Math.ceil(data.length / width);
     const amp = height/2;
-    
-    // background
-    ctx.fillStyle = '#080910';
+
+    ctx.fillStyle = state.theme === 'dark' ? '#080910' : '#f8fafc';
     ctx.fillRect(0,0,width,height);
-    
-    // gradient
+
     const grad = ctx.createLinearGradient(0,0,0,height);
     grad.addColorStop(0, '#7c3aed');
-    grad.addColorStop(1, '#3b82f6');
+    grad.addColorStop(1, '#2563eb');
     ctx.fillStyle = grad;
-    
+
     for (let i=0; i<width; i++) {
       let min=1, max=-1;
       for (let j=0; j<step; j++) {
@@ -683,17 +672,8 @@ footer strong { color:var(--text); }
         if (datum < min) min = datum;
         if (datum > max) max = datum;
       }
-      const y1 = (1+min)*amp;
-      const y2 = (1+max)*amp;
-      ctx.fillRect(i, y1, 1, Math.max(1, y2-y1));
+      ctx.fillRect(i, (1+min)*amp, 1, Math.max(1, (max-min)*amp));
     }
-    
-    // center line
-    ctx.strokeStyle = 'rgba(255,255,255,.1)';
-    ctx.beginPath();
-    ctx.moveTo(0, amp);
-    ctx.lineTo(width, amp);
-    ctx.stroke();
   }
 
   function formatTime(s) {
@@ -703,164 +683,138 @@ footer strong { color:var(--text); }
   }
 
   // PLAYER
-  $('#btnPlay').onclick = togglePlay;
+  $('#btnPlay').onclick = () => state.isPlaying ? pausePlay() : startPlay();
   $('#btnStop').onclick = stopPlay;
-  
-  function togglePlay() {
-    if (!state.audioBuffer) return;
-    if (state.isPlaying) { pausePlay(); } else { startPlay(); }
-  }
-  
+
   function startPlay() {
-    if (!state.audioContext) return;
+    if (!state.audioBuffer || !state.audioContext) return;
     stopPlay();
     state.sourceNode = state.audioContext.createBufferSource();
     state.sourceNode.buffer = state.audioBuffer;
-    const gain = state.audioContext.createGain();
-    gain.gain.value = $('#volume').value / 100;
-    state.sourceNode.playbackRate.value = $('#speed').value / 100;
-    state.sourceNode.connect(gain).connect(state.audioContext.destination);
+    state.sourceNode.playbackRate.value = parseFloat($('#speed').value) / 100;
     
+    const gainNode = state.audioContext.createGain();
+    const ampDb = parseFloat($('#amplify').value);
+    gainNode.gain.value = Math.pow(10, ampDb / 20);
+
+    state.sourceNode.connect(gainNode).connect(state.audioContext.destination);
+
     const offset = state.pauseTime || state.trimStart;
+    const maxDur = parseFloat($('#maxDuration').value);
+    const dur = Math.min(state.duration - offset, maxDur);
+
     state.startTime = state.audioContext.currentTime - offset;
-    state.sourceNode.start(0, offset, state.trimEnd - offset);
+    state.sourceNode.start(0, offset, dur);
     state.isPlaying = true;
-    $('#btnPlay').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
-    
+    $('#btnPlay').textContent = 'Pause';
+
     state.sourceNode.onended = () => { if(state.isPlaying) stopPlay(); };
     updateProgress();
   }
-  
+
   function pausePlay() {
     if (!state.isPlaying) return;
     state.pauseTime = state.audioContext.currentTime - state.startTime;
     state.sourceNode?.stop();
     state.isPlaying = false;
-    $('#btnPlay').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    $('#btnPlay').textContent = 'Play';
     cancelAnimationFrame(state.animationId);
   }
-  
+
   function stopPlay() {
     state.sourceNode?.stop();
     state.sourceNode = null;
     state.isPlaying = false;
     state.pauseTime = 0;
-    $('#btnPlay').innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    $('#btnPlay').textContent = 'Play';
     $('#progressFill').style.width = '0%';
-    $('#timeDisplay').textContent = `00:00 / ${formatTime(state.duration)}`;
     cancelAnimationFrame(state.animationId);
   }
-  
+
   function updateProgress() {
     if (!state.isPlaying) return;
     const current = state.audioContext.currentTime - state.startTime;
-    const total = state.trimEnd - state.trimStart;
-    const percent = Math.min(100, (current / total) * 100);
+    const maxDur = parseFloat($('#maxDuration').value);
+    const percent = Math.min(100, (current / maxDur) * 100);
     $('#progressFill').style.width = percent + '%';
-    $('#timeDisplay').textContent = `${formatTime(current + state.trimStart)} / ${formatTime(state.duration)}`;
-    if (current >= total) { stopPlay(); return; }
+    $('#timeDisplay').textContent = `${formatTime(current)} / ${formatTime(maxDur)}`;
+    if (current >= maxDur) { stopPlay(); return; }
     state.animationId = requestAnimationFrame(updateProgress);
   }
 
-  $('#progressBar').onclick = e => {
-    if (!state.audioBuffer) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const seekTo = state.trimStart + (state.trimEnd - state.trimStart) * x;
-    state.pauseTime = seekTo;
-    if (state.isPlaying) { pausePlay(); startPlay(); }
-    else { $('#progressFill').style.width = (x*100)+'%'; }
-  };
-
-  // TRIM
+  $('#speed').oninput = e => $('#speedVal').textContent = (e.target.value/100).toFixed(1)+'x';
+  $('#amplify').oninput = e => $('#amplifyVal').textContent = e.target.value+' dB';
+  $('#maxDuration').oninput = e => $('#maxDurLabel').textContent = e.target.value+'s';
   $('#trimStart').oninput = e => {
     state.trimStart = parseFloat(e.target.value);
     $('#startLabel').textContent = state.trimStart.toFixed(1)+'s';
-    if (state.trimStart >= state.trimEnd) { state.trimStart = state.trimEnd - 0.1; e.target.value = state.trimStart; }
-    updateTrimRegion();
-    $('#trimBadge').classList.toggle('hidden', state.trimStart===0 && state.trimEnd===state.duration);
-  };
-  $('#trimEnd').oninput = e => {
-    state.trimEnd = parseFloat(e.target.value);
-    $('#endLabel').textContent = state.trimEnd.toFixed(1)+'s';
-    if (state.trimEnd <= state.trimStart) { state.trimEnd = state.trimStart + 0.1; e.target.value = state.trimEnd; }
-    updateTrimRegion();
-    $('#trimBadge').classList.toggle('hidden', state.trimStart===0 && state.trimEnd===state.duration);
-  };
-  function updateTrimRegion() {
-    if (!state.duration) return;
     const start = (state.trimStart / state.duration) * 100;
-    const end = (state.trimEnd / state.duration) * 100;
-    const el = $('#trimRegion');
-    el.style.left = start + '%';
-    el.style.width = (end - start) + '%';
-  }
-  
-  $('#volume').oninput = e => $('#volLabel').textContent = e.target.value + '%';
-  $('#speed').oninput = e => $('#speedLabel').textContent = (e.target.value/100).toFixed(1)+'x';
+    $('#trimRegion').style.left = start + '%';
+    $('#trimRegion').style.width = '100%';
+  };
 
   // PROCESS AUDIO
   $('#btnProcess').onclick = async () => {
-    if (!state.audioBuffer) { toast('Tidak ada audio', 'error'); return; }
+    if (!state.audioBuffer) return;
     stopPlay();
     log('Memproses audio...');
     $('#btnProcess').disabled = true;
-    $('#step1').style.width = '30%';
-    
+
     try {
+      const speed = parseFloat($('#speed').value) / 100;
+      const amplifyDb = parseFloat($('#amplify').value);
+      const maxDur = parseFloat($('#maxDuration').value);
       const start = state.trimStart;
-      const end = Math.min(state.trimEnd, $('#autoTrim').checked ? 420 : state.duration);
-      const duration = end - start;
-      
-      if (duration > 420) {
-        toast('Durasi melebihi 420 detik', 'error');
-        $('#btnProcess').disabled = false;
-        return;
-      }
-      
+      const duration = Math.min(state.duration - start, maxDur);
+
+      const gainFactor = Math.pow(10, amplifyDb / 20);
+
       const offline = new OfflineAudioContext(
         state.audioBuffer.numberOfChannels,
-        Math.ceil(duration * state.audioBuffer.sampleRate),
+        Math.ceil((duration / speed) * state.audioBuffer.sampleRate),
         state.audioBuffer.sampleRate
       );
-      
+
       const source = offline.createBufferSource();
       source.buffer = state.audioBuffer;
-      
-      // effects chain
+      source.playbackRate.value = speed;
+
       const gainNode = offline.createGain();
-      gainNode.gain.value = $('#volume').value / 100;
-      
+      gainNode.gain.value = gainFactor;
+
       source.connect(gainNode).connect(offline.destination);
+
+      if ($('#fadeIn').checked) {
+        gainNode.gain.setValueAtTime(0, 0);
+        gainNode.gain.linearRampToValueAtTime(gainFactor, 1.0);
+      }
+      if ($('#fadeOut').checked) {
+        const renderDur = duration / speed;
+        gainNode.gain.setValueAtTime(gainFactor, Math.max(0, renderDur - 1.0));
+        gainNode.gain.linearRampToValueAtTime(0, renderDur);
+      }
+
       source.start(0, start, duration);
-      
-      $('#step1').style.width = '60%';
+
       const rendered = await offline.startRendering();
-      
-      $('#step1').style.width = '100%';
-      $('#step2').style.width = '50%';
-      
-      // Convert to WAV (Roblox accepts mp3/ogg, but we export wav for quality)
       const wavBlob = audioBufferToWav(rendered, $('#normalize').checked);
       state.processedBlob = wavBlob;
-      
-      $('#step2').style.width = '100%';
-      
+
       $('#fileReady').classList.remove('hidden');
       $('#readyName').textContent = ($('#audioName').value || 'audio') + '.wav';
       $('#readySize').textContent = (wavBlob.size/1024/1024).toFixed(2) + ' MB';
-      $('#readyDuration').textContent = duration.toFixed(1) + 's';
-      
-      $('#btnUpload').disabled = !state.encryptedKey;
-      $('#step3').style.width = '0%';
-      
-      log(`Audio siap: ${duration.toFixed(1)}s, ${(wavBlob.size/1024).toFixed(1)}KB`, 'success');
-      toast('Audio berhasil diproses', 'success');
+      $('#readyDuration').textContent = (duration/speed).toFixed(1) + 's';
+
+      $('#btnUpload').disabled = !state.apiKey;
+      log(`Konversi Selesai! Ukuran: ${(wavBlob.size/1024).toFixed(1)} KB`, 'success');
+      toast('Konversi Berhasil!', 'success');
+
+      addHistoryItem($('#audioName').value || 'Untitled', (duration/speed).toFixed(1)+'s', 'Siap Upload');
       save();
     } catch(e) {
       console.error(e);
-      log('Gagal proses: '+e.message, 'error');
-      toast('Gagal memproses', 'error');
+      log('Gagal proses audio: '+e.message, 'error');
+      toast('Gagal memproses audio', 'error');
     }
     $('#btnProcess').disabled = false;
   };
@@ -871,18 +825,17 @@ footer strong { color:var(--text); }
     const arrayBuffer = new ArrayBuffer(44 + length);
     const view = new DataView(arrayBuffer);
     let pos = 0;
-    
+
     const writeString = s => { for(let i=0;i<s.length;i++) view.setUint8(pos++, s.charCodeAt(i)); };
     const writeUint32 = v => { view.setUint32(pos, v, true); pos+=4; };
     const writeUint16 = v => { view.setUint16(pos, v, true); pos+=2; };
-    
+
     writeString('RIFF'); writeUint32(36+length); writeString('WAVE');
     writeString('fmt '); writeUint32(16); writeUint16(1); writeUint16(numChannels);
     writeUint32(buffer.sampleRate); writeUint32(buffer.sampleRate*numChannels*2);
     writeUint16(numChannels*2); writeUint16(16);
     writeString('data'); writeUint32(length);
-    
-    // find max for normalize
+
     let max = 0;
     if (normalize) {
       for (let c=0;c<numChannels;c++) {
@@ -891,7 +844,7 @@ footer strong { color:var(--text); }
       }
     }
     const norm = normalize && max>0 ? 0.95/max : 1;
-    
+
     for (let i=0; i<buffer.length; i++) {
       for (let c=0; c<numChannels; c++) {
         let sample = buffer.getChannelData(c)[i] * norm;
@@ -911,194 +864,137 @@ footer strong { color:var(--text); }
     a.click();
   };
 
-  // YOUTUBE / SOUNDCLOUD
-  $('#btnFetchYT').onclick = () => fetchRemote('youtube');
-  $('#btnFetchSC').onclick = () => fetchRemote('soundcloud');
-  
-  async function fetchRemote(type) {
-    const url = type==='youtube' ? $('#ytUrl').value.trim() : $('#scUrl').value.trim();
-    if (!url) { toast('Masukkan URL', 'error'); return; }
-    
-    const btn = type==='youtube' ? $('#btnFetchYT') : $('#btnFetchSC');
-    const spinner = type==='youtube' ? $('#ytSpinner') : $('#scSpinner');
-    const text = type==='youtube' ? $('#ytBtnText') : $('#scBtnText');
-    
-    btn.disabled = true; spinner.classList.remove('hidden'); text.textContent = 'Mengambil...';
-    log(`Mengambil dari ${type}: ${url}`);
-    
-    try {
-      const endpoint = `${state.backend}/api/download/${type}?url=${encodeURIComponent(url)}`;
-      const res = await fetch(endpoint, {signal: AbortSignal.timeout(120000)});
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      state.originalFile = new File([blob], `${type}_audio.mp3`, {type: blob.type});
-      $('#sourceBadge').textContent = type==='youtube' ? 'YouTube' : 'SoundCloud';
-      $('#audioName').value = `Audio ${type} ${Date.now()}`;
-      await loadAudio(blob);
-      log('Audio berhasil diambil', 'success');
-      toast('Berhasil mengambil audio', 'success');
-    } catch(e) {
-      log(`Gagal ambil ${type}: ${e.message}`, 'error');
-      toast('Gagal mengambil. Pastikan backend berjalan.', 'error');
-    } finally {
-      btn.disabled = false; spinner.classList.add('hidden'); text.textContent = 'Ambil Audio';
-    }
-  }
-
   // API MODAL
   $('#btnConfigApi, #btnSettings').onclick = () => $('#apiModal').style.display = 'grid';
   $('#btnCloseModal').onclick = () => $('#apiModal').style.display = 'none';
-  
-  $('#btnSaveApi').onclick = async () => {
-    const pass = $('#passphrase').value;
+
+  $('#btnSaveApi').onclick = () => {
     const key = $('#apiKey').value.trim();
-    if (pass.length < 8) { $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">Frase sandi minimal 8 karakter</span>'; return; }
-    if (!key.startsWith('rbx_') && key.length < 20) { $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">API key tidak valid</span>'; return; }
-    
-    try {
-      state.encryptedKey = await encrypt(key, pass);
-      state.userId = $('#userId').value.trim();
-      state.isGroup = $('#isGroup').value === 'true';
-      state.backend = $('#backendUrl').value.trim();
-      save();
-      updateApiStatus();
-      $('#apiFeedback').innerHTML = '<span style="color:var(--success)">✓ API key berhasil dienkripsi dan disimpan</span>';
-      $('#backendStatus').className = 'status-dot';
-      checkBackend();
-      setTimeout(()=>$('#apiModal').style.display='none', 1000);
-      $('#btnUpload').disabled = !state.processedBlob;
-      log('API key disimpan (terenkripsi)', 'success');
-    } catch(e) {
-      $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">Gagal enkripsi</span>';
+    const uId = $('#userIdInput').value.trim();
+    const gType = $('#isGroupInput').value;
+
+    if (!key.startsWith('rbx_') && key.length < 20) {
+      $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">API key tidak valid</span>';
+      return;
     }
+
+    state.apiKey = key;
+    state.userId = uId || '8377415030';
+    state.isGroup = gType;
+    save();
+    updateApiStatus();
+    $('#apiFeedback').innerHTML = '<span style="color:var(--success)">✓ API Key Berhasil Disimpan</span>';
+    setTimeout(()=>$('#apiModal').style.display='none', 800);
+    $('#btnUpload').disabled = !state.processedBlob;
+    log('API key tersimpan di browser', 'success');
   };
 
-  $('#btnTestApi').onclick = async () => {
-    const pass = $('#passphrase').value;
-    if (!state.encryptedKey) { toast('Simpan API key dulu', 'error'); return; }
-    const key = await decrypt(state.encryptedKey, pass);
-    if (!key) { toast('Frase sandi salah', 'error'); return; }
-    
-    $('#btnTestApi').disabled = true;
-    $('#btnTestApi').innerHTML = '<span class="spinner"></span> Testing';
-    try {
-      const res = await fetch(state.backend + '/api/roblox/verify', {
-        method: 'POST',
-        headers: {'x-api-key': key, 'Content-Type':'application/json'},
-        body: JSON.stringify({userId: $('#userId').value, isGroup: $('#isGroup').value==='true'})
-      });
-      if (res.ok) {
-        toast('API key valid!', 'success');
-        log('Verifikasi API berhasil', 'success');
-      } else {
-        throw new Error(await res.text());
-      }
-    } catch(e) {
-      toast('Verifikasi gagal', 'error');
-      log('Verifikasi gagal: '+e.message, 'error');
-    }
-    $('#btnTestApi').disabled = false;
-    $('#btnTestApi').textContent = 'Test Koneksi';
-  };
-
-  // UPLOAD
+  // UPLOAD TO ROBLOX VIA LOCAL BACKEND
   $('#btnUpload').onclick = async () => {
-    if (!state.processedBlob) { toast('Proses audio dulu', 'error'); return; }
-    if (!state.encryptedKey) { $('#apiModal').style.display='grid'; return; }
-    
-    const pass = prompt('Masukkan frase sandi untuk dekripsi API key:');
-    if (!pass) return;
-    const apiKey = await decrypt(state.encryptedKey, pass);
-    if (!apiKey) { toast('Frase sandi salah', 'error'); return; }
-    
+    if (!state.processedBlob) { toast('Konversi audio dulu!', 'error'); return; }
+    if (!state.apiKey) { $('#apiModal').style.display='grid'; return; }
+
     $('#btnUpload').disabled = true;
     $('#uploadSpinner').classList.remove('hidden');
-    $('#uploadText').textContent = 'Mengupload...';
-    $('#step3').style.width = '30%';
+    $('#uploadText').textContent = 'Mengupload ke Roblox...';
+    $('#step1').style.width = '100%'; $('#step2').style.width = '50%';
     log('Memulai upload ke Roblox...');
-    
+
     try {
       const form = new FormData();
       form.append('file', state.processedBlob, $('#readyName').textContent);
-      form.append('nama', $('#audioName').value || 'Untitled');
-      form.append('deskripsi', $('#audioDesc').value || '');
+      form.append('name', $('#audioName').value || 'Untitled');
+      form.append('description', $('#audioDesc').value || '');
+      form.append('apiKey', state.apiKey);
       form.append('userId', state.userId);
       form.append('isGroup', state.isGroup);
-      
-      const res = await fetch(`${state.backend}/api/roblox/upload`, {
+
+      const res = await fetch(`${state.backend}/api/upload`, {
         method: 'POST',
-        headers: {'x-api-key': apiKey},
         body: form
       });
-      
+
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err);
+        let errStr = data.error;
+        if (typeof errStr === 'object') errStr = JSON.stringify(errStr);
+        throw new Error(errStr || `HTTP ${res.status}`);
       }
-      
-      const data = await res.json();
-      state.uploadId = data.id || data.assetId || data.operationId;
-      $('#step3').style.width = '70%';
-      log(`Upload diterima. ID: ${state.uploadId}`, 'success');
-      toast('Upload berhasil dikirim', 'success');
-      
-      // poll status
-      pollStatus(state.uploadId, apiKey);
-      
+
+      const assetId = data.assetId;
+      if (assetId) {
+        $('#step2').style.width = '100%';
+        $('#step3').style.width = '100%';
+        log(`✓ SELESAI! Asset ID: ${assetId}`, 'success');
+        toast(`Upload sukses! Asset ID: ${assetId}`, 'success');
+        updateLastHistoryAssetId(assetId, 'Selesai');
+      } else {
+        throw new Error('Asset ID tidak ditemukan di respons');
+      }
     } catch(e) {
-      log('Upload gagal: '+e.message, 'error');
-      toast('Upload gagal', 'error');
-      $('#step3').style.width = '0%';
-      $('#btnUpload').disabled = false;
+      log('Upload gagal: ' + e.message, 'error');
+      toast('Upload gagal. Cek log.', 'error');
+      updateLastHistoryAssetId('-', 'Gagal');
+      $('#step1').style.width = '0%'; $('#step2').style.width = '0%';
     }
+    $('#btnUpload').disabled = false;
     $('#uploadSpinner').classList.add('hidden');
-    $('#uploadText').textContent = 'Upload ke Roblox';
+    $('#uploadText').textContent = 'Upload Langsung ke Roblox';
   };
 
-  function pollStatus(id, apiKey) {
-    clearInterval(state.pollInterval);
-    let attempts = 0;
-    state.pollInterval = setInterval(async () => {
-      attempts++;
-      try {
-        const res = await fetch(`${state.backend}/api/roblox/status?id=${encodeURIComponent(id)}`, {
-          headers: {'x-api-key': apiKey}
-        });
-        if (!res.ok) throw new Error('status error');
-        const data = await res.json();
-        const status = (data.status || '').toLowerCase();
-        
-        log(`Status: ${data.status} ${data.assetId?'(Asset '+data.assetId+')':''}`, 'info');
-        
-        if (status.includes('success') || status.includes('complete') || data.assetId) {
-          $('#step3').style.width = '100%';
-          clearInterval(state.pollInterval);
-          log(`✓ SELESAI! Asset ID: ${data.assetId}`, 'success');
-          toast(`Upload sukses! Asset ID: ${data.assetId}`, 'success');
-          $('#btnUpload').disabled = false;
-        } else if (status.includes('fail') || status.includes('error')) {
-          clearInterval(state.pollInterval);
-          log('✗ Upload gagal di Roblox', 'error');
-          toast('Gagal diproses Roblox', 'error');
-          $('#btnUpload').disabled = false;
-        }
-        
-        if (attempts > 40) { clearInterval(state.pollInterval); log('Timeout monitoring', 'error'); }
-      } catch(e) {
-        log('Gagal cek status', 'error');
-      }
-    }, 3000);
+  // HISTORY
+  function addHistoryItem(name, dur, status, assetId = '-') {
+    state.history.unshift({ time: new Date().toLocaleTimeString(), name, dur, status, assetId });
+    renderHistory();
+    save();
   }
 
-  // INIT
-  $('#backendUrl').onchange = e => { state.backend = e.target.value; $('#ytBackendHint').textContent = state.backend; save(); checkBackend(); };
-  $('#userId').onchange = e => { state.userId = e.target.value; save(); };
-  $('#isGroup').onchange = e => { state.isGroup = e.target.value==='true'; save(); };
-  
+  function updateLastHistoryAssetId(assetId, status) {
+    if (state.history.length > 0) {
+      state.history[0].assetId = assetId;
+      state.history[0].status = status;
+      renderHistory();
+      save();
+    }
+  }
+
+  function renderHistory() {
+    const tbody = $('#historyBody');
+    if (state.history.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:20px;">Belum ada riwayat konversi.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = state.history.map(item => `
+      <tr>
+        <td>${item.time}</td>
+        <td><strong>${item.name}</strong></td>
+        <td>${item.dur}</td>
+        <td><code style="color:var(--accent2);">${item.assetId}</code></td>
+        <td><span class="badge-status ${item.assetId !== '-' ? 'success' : ''}">${item.status}</span></td>
+      </tr>
+    `).join('');
+  }
+
+  $('#btnCopyAll').onclick = () => {
+    const ids = state.history.map(h => h.assetId).filter(id => id && id !== '-').join('\n');
+    if (ids) {
+      navigator.clipboard.writeText(ids);
+      toast('Semua Asset ID berhasil disalin!');
+    } else {
+      toast('Tidak ada Asset ID untuk disalin.', 'error');
+    }
+  };
+
+  $('#btnDeleteAll').onclick = () => {
+    state.history = [];
+    renderHistory();
+    save();
+    toast('Riwayat dibersihkan.');
+  };
+
   load();
   checkBackend();
   setInterval(checkBackend, 30000);
-  
   window.addEventListener('resize', () => { if(state.audioBuffer) drawWaveform(); });
 })();
 </script>
