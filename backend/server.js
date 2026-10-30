@@ -12,12 +12,15 @@ const upload = multer({ dest: 'uploads/' });
 app.use(cors());
 app.use(express.json());
 
+// Melayani file statis dari folder 'public' (tempat index.html berada)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Endpoint Health Check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'online', message: 'Backend LA'PARTY STUDIO aktif!' });
 });
 
-// Endpoint Download YouTube Audio
+// Endpoint Download YouTube Audio via yt-dlp
 app.post('/api/youtube', (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ success: false, error: 'URL tidak boleh kosong' });
@@ -25,13 +28,12 @@ app.post('/api/youtube', (req, res) => {
   const outputId = Date.now();
   const outputPath = path.join(__dirname, 'uploads', `${outputId}.mp3`);
 
-  // Perintah yt-dlp untuk mengambil audio berformat MP3
   const cmd = `yt-dlp -x --audio-format mp3 --no-playlist -o "${outputPath}" "${url}"`;
 
   exec(cmd, (error, stdout, stderr) => {
     if (error) {
       console.error(`Error yt-dlp: ${error.message}`);
-      return res.status(500).json({ success: false, error: 'Gagal mendownload audio dari YouTube via backend' });
+      return res.status(500).json({ success: false, error: 'Gagal mendownload audio dari YouTube' });
     }
 
     if (!fs.existsSync(outputPath)) {
@@ -70,7 +72,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     const fileStream = fs.createReadStream(file.path);
     const stats = fs.statSync(file.path);
 
-    // Payload metadata untuk Roblox Open Cloud Asset API
     const assetRequest = {
       assetType: "Audio",
       displayName: name || "LA'PARTY Audio",
@@ -99,12 +100,10 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       maxContentLength: Infinity
     });
 
-    // Hapus file upload lokal setelah selesai
+    // Hapus file upload lokal
     fs.unlinkSync(file.path);
 
     const operationId = response.data.operationId;
-    
-    // Kirim kembali operationId atau assetId ke frontend
     res.json({ success: true, assetId: response.data.assetId || operationId });
 
   } catch (err) {
