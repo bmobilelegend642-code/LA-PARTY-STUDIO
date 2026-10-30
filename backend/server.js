@@ -1,130 +1,123 @@
-// backend/server.js - Localhost Version
-import express from 'express';
-import cors from 'cors';
-import path from 'path';
-import fs from 'fs';
-import { exec } from 'child_process';
-import util from 'util';
-import axios from 'axios';
-import multer from 'multer';
-import FormData from 'form-data';
-import { fileURLToPath } from 'url';
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
-const execAsync  = util.promisify(exec);
-
-const app  = express();
-const PORT = 3000;
+const app = express();
+const upload = multer({ dest: 'uploads/' });
 
 app.use(cors());
-app.use(express.json({ limit: '100mb' }));
+app.use(express.json());
 
-const upload = multer({ dest: '/tmp/' });
-
-// Health Check
+// Endpoint Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString(), version: 'v2-local' });
+  res.json({ status: 'online', message: 'Backend LA'PARTY STUDIO aktif!' });
 });
 
-// YouTube Download (Local yt-dlp)
-app.post('/api/youtube', async (req, res) => {
+// Endpoint Download YouTube Audio
+app.post('/api/youtube', (req, res) => {
   const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'URL diperlukan' });
+  if (!url) return res.status(400).json({ success: false, error: 'URL tidak boleh kosong' });
 
-  const outputPath = path.join(__dirname, `${Date.now()}.mp3`);
-  try {
-    const cmd = `yt-dlp -x --audio-format mp3 --no-playlist \
-      --extractor-args "youtube:player_client=android,ios,web" \
-      --no-check-certificates \
-      -o "${outputPath}" "${url}"`;
+  const outputId = Date.now();
+  const outputPath = path.join(__dirname, 'uploads', `${outputId}.mp3`);
 
-    await execAsync(cmd, { timeout: 180000 });
-    const fileBuffer = fs.readFileSync(outputPath);
-    fs.unlinkSync(outputPath);
-    return res.json({ success: true, audio: fileBuffer.toString('base64'), filename: 'youtube_audio.mp3' });
-  } catch (err) {
-    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-    return res.status(500).json({ error: 'Gagal mengunduh YouTube: ' + err.message });
-  }
-});
+  // Perintah yt-dlp untuk mengambil audio berformat MP3
+  const cmd = `yt-dlp -x --audio-format mp3 --no-playlist -o "${outputPath}" "${url}"`;
 
-// SoundCloud Download
-app.post('/api/soundcloud', async (req, res) => {
-  const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'URL diperlukan' });
-
-  const outputPath = path.join(__dirname, `${Date.now()}.mp3`);
-  try {
-    await execAsync(`yt-dlp -x --audio-format mp3 --no-playlist -o "${outputPath}" "${url}"`, { timeout: 180000 });
-    const fileBuffer = fs.readFileSync(outputPath);
-    fs.unlinkSync(outputPath);
-    res.json({ success: true, audio: fileBuffer.toString('base64'), filename: 'soundcloud_audio.mp3' });
-  } catch (err) {
-    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Upload ke Roblox Open Cloud
-app.post('/api/upload', upload.single('file'), async (req, res) => {
-  const filePath = req.file?.path;
-  try {
-    const { apiKey, name, description, userId, isGroup } = req.body;
-    if (!apiKey)   return res.status(400).json({ error: 'API Key diperlukan' });
-    if (!filePath) return res.status(400).json({ error: 'Fail audio diperlukan' });
-
-    const fileData = fs.readFileSync(filePath);
-    const fileName = req.file.originalname || 'audio.wav';
-    const mimeType = req.file.mimetype     || 'audio/wav';
-
-    const creatorObj = {};
-    if (userId) {
-      if (isGroup === 'true' || isGroup === true) {
-        creatorObj.groupId = String(userId);
-      } else {
-        creatorObj.userId = String(userId);
-      }
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error yt-dlp: ${error.message}`);
+      return res.status(500).json({ success: false, error: 'Gagal mendownload audio dari YouTube via backend' });
     }
 
-    const form = new FormData();
-    form.append('request', JSON.stringify({
-      assetType:   'Audio',
-      displayName: name        || 'Uploaded Audio',
-      description: description || 'Uploaded via LA\'PARTY STUDIO',
-      creationContext: { creator: creatorObj }
-    }), { contentType: 'application/json' });
+    if (!fs.existsSync(outputPath)) {
+      return res.status(500).json({ success: false, error: 'File audio gagal diproses oleh server' });
+    }
 
-    form.append('fileContent', fileData, {
-      filename:    fileName,
-      contentType: mimeType
+    try {
+      const fileBuffer = fs.readFileSync(outputPath);
+      const base64Audio = fileBuffer.toString('base64');
+
+      // Hapus file sementara dari server
+      fs.unlinkSync(outputPath);
+
+      res.json({
+        success: true,
+        audio: base64Audio,
+        filename: `youtube_audio_${outputId}.mp3`
+      });
+    } catch (err) {
+      res.status(500).json({ success: false, error: 'Gagal membaca file audio di server' });
+    }
+  });
+});
+
+// Endpoint Upload ke Roblox Open Cloud
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    const { name, description, apiKey, userId, isGroup } = req.body;
+
+    if (!file || !apiKey) {
+      if (file && file.path) fs.unlinkSync(file.path);
+      return res.status(400).json({ error: 'File audio atau API Key tidak lengkap' });
+    }
+
+    const fileStream = fs.createReadStream(file.path);
+    const stats = fs.statSync(file.path);
+
+    // Payload metadata untuk Roblox Open Cloud Asset API
+    const assetRequest = {
+      assetType: "Audio",
+      displayName: name || "LA'PARTY Audio",
+      description: description || "Uploaded via LA'PARTY STUDIO Pro v2",
+      creationContext: {
+        creator: {
+          [isGroup === 'true' ? 'groupId' : 'userId']: userId || "8377415030"
+        }
+      }
+    };
+
+    const form = new (require('form-data'))();
+    form.append('request', JSON.stringify(assetRequest));
+    form.append('fileContent', fileStream, {
+      filename: file.originalname,
+      contentType: 'audio/wav',
+      knownLength: stats.size
     });
 
-    const response = await axios.post(
-      'https://apis.roblox.com/assets/v1/assets',
-      form,
-      {
-        headers: {
-          'x-api-key': apiKey,
-          ...form.getHeaders()
-        },
-        maxBodyLength: Infinity,
-        maxContentLength: Infinity
-      }
-    );
+    const response = await axios.post('https://apis.roblox.com/assets/v1/assets', form, {
+      headers: {
+        'x-api-key': apiKey,
+        ...form.getHeaders()
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
+    });
 
-    fs.unlinkSync(filePath);
-    const data = response.data;
-    let assetId = data.assetId || data.id;
+    // Hapus file upload lokal setelah selesai
+    fs.unlinkSync(file.path);
 
-    res.json({ success: true, assetId });
+    const operationId = response.data.operationId;
+    
+    // Kirim kembali operationId atau assetId ke frontend
+    res.json({ success: true, assetId: response.data.assetId || operationId });
+
   } catch (err) {
-    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    let errorDetail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
-    res.status(500).json({ error: errorDetail });
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    const errorMsg = err.response?.data || err.message;
+    console.error('Upload Error:', errorMsg);
+    res.status(500).json({ error: errorMsg });
   }
 });
 
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Backend Localhost berjalan di http://localhost:${PORT}`);
+  console.log(`✅ Backend server berjalan di port ${PORT}`);
 });
