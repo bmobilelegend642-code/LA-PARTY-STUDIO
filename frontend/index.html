@@ -190,11 +190,11 @@ header {
       </div>
     </div>
     <div class="quota-info">
-      <span id="quotaCount">3/3</span> konversi tersisa hari ini • <strong id="planType">Free Plan</strong>
+      <span id="quotaCount">∞</span> konversi tersisa • <strong id="planType">Pro Plan (Owner)</strong>
     </div>
     <div style="display:flex; align-items:center; gap:12px;">
       <button class="btn btn-secondary btn-sm" id="btnThemeToggle" title="Ubah Mode Tampilan">🌙 Dark</button>
-      <span style="font-size:12px; color:var(--muted);">Backend: <b id="backendTextDisplay">Otomatis</b></span>
+      <span style="font-size:12px; color:var(--muted);">Backend: <b id="backendTextDisplay">Localhost:3000</b></span>
       <div class="status-dot" id="backendStatus"></div>
       <button class="btn btn-ghost btn-sm" id="btnSettings">API Config</button>
     </div>
@@ -217,7 +217,7 @@ header {
         <div class="tab-content active" id="tab-url">
           <div class="field">
             <label class="label">Tempel URL (YouTube atau SoundCloud)</label>
-            <input type="url" class="input" id="remoteUrl" placeholder="https://youtube.com/watch?v=... atau SoundCloud">
+            <input type="url" class="input" id="remoteUrl" placeholder="https://youtube.com/watch?v=...">
           </div>
           <button class="btn btn-primary" style="width:100%" id="btnFetchRemote">
             <span id="remoteBtnText">Ambil Audio</span>
@@ -351,17 +351,8 @@ header {
         <button class="btn btn-secondary" id="btnConfigApi">Set Roblox API Key</button>
       </div>
       <div class="log" id="log">
-        <div class="log-entry">Selamat datang di LA'PARTY STUDIO Audio Uploader Pro v2</div>
+        <div class="log-entry">Selamat datang di LA'PARTY STUDIO Audio Uploader Pro v2 (Localhost)</div>
       </div>
-    </div>
-  </div>
-
-  <!-- PROMO CODE BAR -->
-  <div class="panel" style="padding:14px 18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-    <span style="font-size:13px; color:var(--muted);">Masukkan kode promo untuk kuota unlimited:</span>
-    <div style="display:flex; gap:8px;">
-      <input type="text" class="input" id="promoCode" placeholder="Kode Promo (cth: LAPARTY)" style="width:200px; padding:6px 10px;">
-      <button class="btn btn-secondary btn-sm" id="btnApplyPromo">Klaim</button>
     </div>
   </div>
 
@@ -370,7 +361,7 @@ header {
     <div class="panel-header">
       <h2>Riwayat Upload & Konversi</h2>
       <div style="display:flex; gap:8px;">
-        <button class="btn btn-secondary btn-sm" id="btnCopyAll"><> Copy All ID</button>
+        <button class="btn btn-secondary btn-sm" id="btnCopyAll">&lt;&gt; Copy All ID</button>
         <button class="btn btn-ghost btn-sm" id="btnDeleteAll" style="color:var(--danger);">Delete All</button>
       </div>
     </div>
@@ -407,7 +398,18 @@ header {
         <label class="label">Roblox Open Cloud API Key</label>
         <input type="password" class="input" id="apiKey" placeholder="rbx_...">
       </div>
-      <div style="display:flex; gap:8px;">
+      <div class="field">
+        <label class="label">User ID atau Group ID (Opsional)</label>
+        <input type="text" class="input" id="userIdInput" placeholder="8377415030">
+      </div>
+      <div class="field">
+        <label class="label">Tipe Pemilik Asset</label>
+        <select class="select" id="isGroupInput">
+          <option value="false">User Pribadi</option>
+          <option value="true">Group Roblox</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:10px;">
         <button class="btn btn-primary" id="btnSaveApi" style="flex:1;">Simpan Permanen</button>
       </div>
       <div id="apiFeedback" style="margin-top:12px; font-size:13px;"></div>
@@ -423,7 +425,8 @@ header {
   const $$ = s => document.querySelectorAll(s);
 
   const state = {
-    backend: window.location.origin,
+    // Diarahkan langsung ke server lokal laptop port 3000
+    backend: 'http://localhost:3000',
     audioBuffer: null,
     originalFile: null,
     processedBlob: null,
@@ -435,11 +438,10 @@ header {
     trimStart: 0,
     duration: 0,
     animationId: null,
-    uploadId: null,
     apiKey: '',
+    userId: '8377415030',
+    isGroup: 'false',
     history: [],
-    quota: 3,
-    isUnlimited: false,
     theme: 'dark'
   };
 
@@ -462,7 +464,7 @@ header {
     setTimeout(()=>t.remove(), 4000);
   };
 
-  // THEME MANAGEMENT
+  // THEME
   function applyTheme(theme) {
     state.theme = theme;
     document.documentElement.setAttribute('data-theme', theme);
@@ -471,50 +473,40 @@ header {
   }
 
   $('#btnThemeToggle').onclick = () => {
-    const newTheme = state.theme === 'dark' ? 'light' : 'dark';
-    applyTheme(newTheme);
+    applyTheme(state.theme === 'dark' ? 'light' : 'dark');
     save();
   };
 
-  // LOCAL STORAGE (AUTO-LOAD & AUTO-SAVE)
+  // STORAGE
   const save = () => {
-    localStorage.setItem('laparty_uploader_v2_auto', JSON.stringify({
+    localStorage.setItem('laparty_uploader_local_v2', JSON.stringify({
       apiKey: state.apiKey,
+      userId: state.userId,
+      isGroup: state.isGroup,
       history: state.history,
-      isUnlimited: state.isUnlimited,
-      quota: state.quota,
       theme: state.theme
     }));
   };
 
   const load = () => {
     try {
-      const d = JSON.parse(localStorage.getItem('laparty_uploader_v2_auto') || '{}');
+      const d = JSON.parse(localStorage.getItem('laparty_uploader_local_v2') || '{}');
       state.apiKey = d.apiKey || '';
+      state.userId = d.userId || '8377415030';
+      state.isGroup = d.isGroup || 'false';
       state.history = d.history || [];
-      state.isUnlimited = d.isUnlimited || false;
-      state.quota = d.quota !== undefined ? d.quota : 3;
       state.theme = d.theme || 'dark';
 
       $('#apiKey').value = state.apiKey;
-      $('#backendTextDisplay').textContent = window.location.hostname;
+      $('#userIdInput').value = state.userId;
+      $('#isGroupInput').value = state.isGroup;
+      $('#backendTextDisplay').textContent = 'Localhost:3000';
       
       applyTheme(state.theme);
       updateApiStatus();
-      updateQuotaDisplay();
       renderHistory();
     } catch {}
   };
-
-  function updateQuotaDisplay() {
-    if (state.isUnlimited) {
-      $('#quotaCount').textContent = '∞';
-      $('#planType').textContent = 'Pro Plan';
-    } else {
-      $('#quotaCount').textContent = `${state.quota}/3`;
-      $('#planType').textContent = 'Free Plan';
-    }
-  }
 
   function updateApiStatus() {
     const el = $('#apiStatus');
@@ -527,18 +519,18 @@ header {
     }
   }
 
-  // BACKEND HEALTH CHECK
+  // CHECK BACKEND HEALTH
   async function checkBackend() {
     try {
       const r = await fetch(state.backend + '/api/health', {signal: AbortSignal.timeout(3000)});
       if (r.ok) {
         $('#backendStatus').className = 'status-dot online';
-        log('Backend terhubung secara otomatis!', 'success');
+        log('Backend localhost terhubung sempurna!', 'success');
         return true;
       }
     } catch {}
     $('#backendStatus').className = 'status-dot offline';
-    log('Backend offline atau sedang merestart...', 'error');
+    log('Backend offline. Pastikan "node server.js" menyala di terminal!', 'error');
     return false;
   }
 
@@ -573,6 +565,7 @@ header {
     log(`File dimuat: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
   }
 
+  // YOUTUBE FETCH (LOCAL BACKEND BYPASS 429)
   $('#btnFetchRemote').onclick = async () => {
     const url = $('#remoteUrl').value.trim();
     if (!url) { toast('Masukkan URL!', 'error'); return; }
@@ -581,8 +574,8 @@ header {
     const spinner = $('#remoteSpinner');
     const text = $('#remoteBtnText');
 
-    btn.disabled = true; spinner.classList.remove('hidden'); text.textContent = 'Mengambil...';
-    log(`Mengambil audio remote dari: ${url}`);
+    btn.disabled = true; spinner.classList.remove('hidden'); text.textContent = 'Mengambil via Localhost...';
+    log(`Mengambil audio dari URL: ${url}`);
 
     try {
       const type = url.includes('soundcloud.com') ? 'soundcloud' : 'youtube';
@@ -601,12 +594,8 @@ header {
       }
       
       const data = await res.json();
-      
-      if (!data.success || !data.audio) {
-        throw new Error('Respons backend tidak valid');
-      }
+      if (!data.success || !data.audio) throw new Error('Data audio base64 tidak valid');
 
-      // Decode base64 string to Uint8Array
       const binaryString = atob(data.audio);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
@@ -619,12 +608,12 @@ header {
       $('#audioName').value = `Audio ${Date.now()}`;
       
       await loadAudio(blob);
-      log('Audio remote berhasil diambil', 'success');
+      log('Audio berhasil diambil dari YouTube tanpa blokir!', 'success');
       toast('Berhasil mengambil audio', 'success');
       
     } catch(e) {
       log(`Gagal ambil audio: ${e.message}`, 'error');
-      toast('Gagal mengambil. Lihat log.', 'error');
+      toast('Gagal mengambil. Cek terminal server lokal.', 'error');
     } finally {
       btn.disabled = false; spinner.classList.add('hidden'); text.textContent = 'Ambil Audio';
     }
@@ -693,7 +682,7 @@ header {
     return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
   }
 
-  // PLAYER CONTROLS
+  // PLAYER
   $('#btnPlay').onclick = () => state.isPlaying ? pausePlay() : startPlay();
   $('#btnStop').onclick = stopPlay;
 
@@ -753,7 +742,6 @@ header {
     state.animationId = requestAnimationFrame(updateProgress);
   }
 
-  // ADVANCED SETTINGS CONTROL LISTENERS
   $('#speed').oninput = e => $('#speedVal').textContent = (e.target.value/100).toFixed(1)+'x';
   $('#amplify').oninput = e => $('#amplifyVal').textContent = e.target.value+' dB';
   $('#maxDuration').oninput = e => $('#maxDurLabel').textContent = e.target.value+'s';
@@ -765,14 +753,9 @@ header {
     $('#trimRegion').style.width = '100%';
   };
 
-  // PROCESS AUDIO WITH EFFECTS
+  // PROCESS AUDIO
   $('#btnProcess').onclick = async () => {
     if (!state.audioBuffer) return;
-    if (!state.isUnlimited && state.quota <= 0) {
-      toast('Kuota harian habis! Klaim kode promo.', 'error');
-      return;
-    }
-
     stopPlay();
     log('Memproses audio...');
     $('#btnProcess').disabled = true;
@@ -821,11 +804,6 @@ header {
       $('#readyName').textContent = ($('#audioName').value || 'audio') + '.wav';
       $('#readySize').textContent = (wavBlob.size/1024/1024).toFixed(2) + ' MB';
       $('#readyDuration').textContent = (duration/speed).toFixed(1) + 's';
-
-      if (!state.isUnlimited) {
-        state.quota--;
-        updateQuotaDisplay();
-      }
 
       $('#btnUpload').disabled = !state.apiKey;
       log(`Konversi Selesai! Ukuran: ${(wavBlob.size/1024).toFixed(1)} KB`, 'success');
@@ -886,34 +864,39 @@ header {
     a.click();
   };
 
-  // API MODAL & CONFIG
+  // API MODAL
   $('#btnConfigApi, #btnSettings').onclick = () => $('#apiModal').style.display = 'grid';
   $('#btnCloseModal').onclick = () => $('#apiModal').style.display = 'none';
 
   $('#btnSaveApi').onclick = () => {
     const key = $('#apiKey').value.trim();
+    const uId = $('#userIdInput').value.trim();
+    const gType = $('#isGroupInput').value;
+
     if (!key.startsWith('rbx_') && key.length < 20) {
       $('#apiFeedback').innerHTML = '<span style="color:var(--danger)">API key tidak valid</span>';
       return;
     }
 
     state.apiKey = key;
+    state.userId = uId || '8377415030';
+    state.isGroup = gType;
     save();
     updateApiStatus();
-    $('#apiFeedback').innerHTML = '<span style="color:var(--success)">✓ API Key Berhasil Disimpan Permanen</span>';
+    $('#apiFeedback').innerHTML = '<span style="color:var(--success)">✓ API Key Berhasil Disimpan</span>';
     setTimeout(()=>$('#apiModal').style.display='none', 800);
     $('#btnUpload').disabled = !state.processedBlob;
     log('API key tersimpan di browser', 'success');
   };
 
- // DIRECT UPLOAD TO ROBLOX
+  // UPLOAD TO ROBLOX VIA LOCAL BACKEND
   $('#btnUpload').onclick = async () => {
     if (!state.processedBlob) { toast('Konversi audio dulu!', 'error'); return; }
     if (!state.apiKey) { $('#apiModal').style.display='grid'; return; }
 
     $('#btnUpload').disabled = true;
     $('#uploadSpinner').classList.remove('hidden');
-    $('#uploadText').textContent = 'Mengupload ke Roblox... (mohon tunggu)';
+    $('#uploadText').textContent = 'Mengupload ke Roblox...';
     $('#step1').style.width = '100%'; $('#step2').style.width = '50%';
     log('Memulai upload ke Roblox...');
 
@@ -923,8 +906,8 @@ header {
       form.append('name', $('#audioName').value || 'Untitled');
       form.append('description', $('#audioDesc').value || '');
       form.append('apiKey', state.apiKey);
-      form.append('userId', $('#userId')?.value || '8377415030');
-      form.append('isGroup', $('#isGroup')?.value || 'false');
+      form.append('userId', state.userId);
+      form.append('isGroup', state.isGroup);
 
       const res = await fetch(`${state.backend}/api/upload`, {
         method: 'POST',
@@ -932,7 +915,6 @@ header {
       });
 
       const data = await res.json().catch(() => ({}));
-
       if (!res.ok) {
         let errStr = data.error;
         if (typeof errStr === 'object') errStr = JSON.stringify(errStr);
@@ -940,7 +922,6 @@ header {
       }
 
       const assetId = data.assetId;
-      
       if (assetId) {
         $('#step2').style.width = '100%';
         $('#step3').style.width = '100%';
@@ -948,7 +929,7 @@ header {
         toast(`Upload sukses! Asset ID: ${assetId}`, 'success');
         updateLastHistoryAssetId(assetId, 'Selesai');
       } else {
-        throw new Error('Asset ID tidak ditemukan');
+        throw new Error('Asset ID tidak ditemukan di respons');
       }
     } catch(e) {
       log('Upload gagal: ' + e.message, 'error');
@@ -1009,18 +990,6 @@ header {
     renderHistory();
     save();
     toast('Riwayat dibersihkan.');
-  };
-
-  $('#btnApplyPromo').onclick = () => {
-    const code = $('#promoCode').value.trim().toUpperCase();
-    if (code === "LAPARTY" || code === "PRO" || code.length >= 4) {
-      state.isUnlimited = true;
-      updateQuotaDisplay();
-      save();
-      toast('Kode Promo Berhasil Diaktifkan! Kuota Unlimited.', 'success');
-    } else {
-      toast('Kode promo tidak valid', 'error');
-    }
   };
 
   load();
