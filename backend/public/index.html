@@ -183,7 +183,6 @@ header {
 .acct-title input { accent-color:var(--accent1); }
 .key-row { display:flex; gap:8px; }
 .key-row .input { flex:1; min-width:0; }
-.two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
 .toast-container { position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px; max-width:min(420px, calc(100vw - 40px)); }
 .toast { padding:12px 16px; background:var(--card); border:1px solid var(--border); border-left:4px solid var(--accent2); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.25); animation:fadeIn .25s; }
@@ -202,7 +201,7 @@ header {
       </div>
       <div><h1>LA'PARTY STUDIO <span class="badge">PRO v2</span></h1></div>
     </div>
-    <div class="quota-info"><span>∞</span> konversi tersisa • <strong>Pro Plan (Owner)</strong></div>
+    <div class="quota-info"><span>∞</span> konversi tersisa • <strong>Output OGG Vorbis</strong></div>
     <div class="head-right">
       <button class="btn btn-secondary btn-sm" id="btnThemeToggle" title="Ubah Mode Tampilan">🌙 Dark</button>
       <span class="small muted">Backend: <b id="backendTextDisplay">Menyambung…</b></span>
@@ -233,7 +232,7 @@ header {
             <span id="remoteBtnText">Ambil Audio</span>
             <span class="spinner hidden" id="remoteSpinner"></span>
           </button>
-          <p class="hint">Server mengunduh audionya, lalu diedit &amp; dikonversi di browser kamu. Lagu panjang aman (dipotong otomatis jadi beberapa part).</p>
+          <p class="hint">Server mengunduh audionya, lalu diedit &amp; dikonversi ke OGG Vorbis. Lagu panjang aman (dipotong otomatis jadi beberapa part).</p>
         </div>
 
         <div class="tab-content" id="tab-file">
@@ -243,7 +242,7 @@ header {
             <button class="btn btn-secondary btn-sm" id="btnPickFile">Pilih File</button>
             <input type="file" id="fileInput" accept="audio/*,.mp3,.ogg,.wav,.m4a,.flac,.aac,.opus" multiple hidden>
           </div>
-          <p class="hint">1 file → dibuka di editor. Banyak file → langsung dikonversi satu per satu dengan pengaturan editor saat ini.</p>
+          <p class="hint">1 file → dibuka di editor. Banyak file → langsung dikonversi satu per satu ke OGG Vorbis dengan pengaturan editor saat ini.</p>
         </div>
       </div>
     </div>
@@ -303,21 +302,9 @@ header {
             <label class="switch"><input type="checkbox" id="fadeOut"><span class="switch-track"><span class="switch-thumb"></span></span><span style="font-size:13px;">Fade Out 1s</span></label>
           </div>
 
-          <div class="two">
-            <div class="field">
-              <label class="label" for="audioName">Nama Audio</label>
-              <input type="text" class="input" id="audioName" placeholder="My Audio Track">
-            </div>
-            <div class="field">
-              <label class="label" for="bitrate">Kualitas MP3</label>
-              <select class="select" id="bitrate">
-                <option value="128">128 kbps (kecil)</option>
-                <option value="160">160 kbps</option>
-                <option value="192" selected>192 kbps (disarankan)</option>
-                <option value="256">256 kbps</option>
-                <option value="320">320 kbps (terbesar)</option>
-              </select>
-            </div>
+          <div class="field">
+            <label class="label" for="audioName">Nama Audio</label>
+            <input type="text" class="input" id="audioName" placeholder="My Audio Track">
           </div>
           <div class="field">
             <label class="label" for="audioDesc">Deskripsi (Opsional)</label>
@@ -325,9 +312,9 @@ header {
           </div>
 
           <div class="plan-info" id="planInfo">—</div>
-          <p class="hint" style="margin-top:0">Batas Roblox: maks 7 menit &amp; 20 MB per audio. Lagu lebih panjang dipotong rata jadi beberapa part (diberi sisa aman ±3 detik).</p>
+          <p class="hint" style="margin-top:0">Format output otomatis <b>OGG Vorbis (.ogg)</b>. Batas Roblox: maks 7 menit &amp; 20 MB per audio (diberi sisa aman ±3 detik).</p>
 
-          <button class="btn btn-primary" style="width:100%; margin-top:12px;" id="btnProcess">Konversi &amp; Tambah ke Riwayat</button>
+          <button class="btn btn-primary" style="width:100%; margin-top:12px;" id="btnProcess">Konversi ke OGG &amp; Tambah ke Riwayat</button>
           <div class="conv-box hidden" id="convBox">
             <div class="progress-bar big"><div class="progress-fill" id="convFill"></div></div>
             <div class="conv-text" id="convText"></div>
@@ -425,8 +412,8 @@ header {
   'use strict';
 
   /* ───────────────── Konstanta & helper ───────────────── */
-  const SR = 44100;                       // sample rate hasil (aman untuk MP3)
-  const SAFE_MARGIN = 3;                  // detik, sisa aman terhadap batas 7 menit Roblox
+  const SR = 44100;
+  const SAFE_MARGIN = 3;
   const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
   const DEFAULT_DESC = "Uploaded via LA'PARTY STUDIO Pro v2";
   const LS_KEY = 'laparty_uploader_v3';
@@ -463,7 +450,6 @@ header {
     return n;
   }
 
-  // Log disembunyikan: hanya ke console (error penting tampil lewat toast & status baris riwayat)
   const log = (...a) => { try { console.log('[uploader]', ...a); } catch (_) {} };
 
   function toast(msg, type = 'info', ms) {
@@ -500,18 +486,15 @@ header {
     }
   }
 
-  // yield ke browser tanpa terkena throttle timer tab background
   const mc = new MessageChannel(); let yieldRes = null;
   mc.port1.onmessage = () => { const r = yieldRes; yieldRes = null; if (r) r(); };
   const yieldNow = () => new Promise(r => { yieldRes = r; mc.port2.postMessage(0); });
-  let lastYield = 0;
-  const maybeYield = () => { const n = performance.now(); if (n - lastYield > 30) { lastYield = n; return yieldNow(); } return null; };
 
   /* ───────────────── State ───────────────── */
   const state = {
     ctx: null, buf: null, peakAll: null, duration: 0, trimStart: 0,
     sourceNode: null, gainNode: null, isPlaying: false, playOffset: 0, playStartCtx: 0, playRate: 1, pausePos: 0, raf: 0,
-    converting: false, cancel: false, uploadingAll: false,
+    converting: false, cancel: false, activeXhr: null, uploadingAll: false,
     history: [], theme: 'dark',
     cfg: { target: 'user', user: { apiKey: '', id: '8377415030' }, group: { apiKey: '', id: '' } },
     form: {}
@@ -522,7 +505,7 @@ header {
   function loadSettings() {
     let d = {};
     try { d = JSON.parse(localStorage.getItem(LS_KEY) || '{}') || {}; } catch (_) {}
-    if (!d.cfg) { // migrasi dari versi lama
+    if (!d.cfg) {
       try {
         const o = JSON.parse(localStorage.getItem('laparty_uploader_online_v2') || localStorage.getItem('laparty_uploader_local_v2') || 'null');
         if (o && (o.apiKey || o.userId)) {
@@ -545,7 +528,7 @@ header {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({
         cfg: state.cfg, theme: state.theme,
-        form: { bitrate: $('#bitrate').value, desc: $('#audioDesc').value }
+        form: { desc: $('#audioDesc').value }
       }));
     } catch (_) {}
   }
@@ -684,12 +667,11 @@ header {
     const box = $('#planInfo');
     if (!state.buf) { box.textContent = '—'; return; }
     const p = plan();
-    const kbps = Number($('#bitrate').value) || 192;
-    const est = fmtSize(p.per * kbps * 125);
+    const est = fmtSize(p.per * 160 * 125); // estimasi OGG Vorbis -q:a 5 (~160 kbps)
     box.textContent = '';
     box.append(
       'Durasi hasil ', el('b', {}, fmt(p.outDur)), ' → ',
-      p.n === 1 ? el('b', {}, '1 file') : el('b', {}, p.n + ' part'),
+      p.n === 1 ? el('b', {}, '1 file OGG') : el('b', {}, p.n + ' part OGG'),
       p.n === 1 ? '' : ` (±${fmt(p.per)} per part)`,
       ` • ≈ ${est} per file`
     );
@@ -746,66 +728,82 @@ header {
     $('#playhead').style.left = `calc(${pct}% - 1px)`;
   }
 
-  /* ───────────────── Encoder MP3 (lamejs) ───────────────── */
-  let lamePromise = null;
-  function loadScript(src) {
-    return new Promise((res, rej) => {
-      const s = document.createElement('script'); s.src = src; s.async = true;
-      s.onload = res; s.onerror = () => { s.remove(); rej(new Error('gagal load ' + src)); };
-      document.head.appendChild(s);
-    });
-  }
-  function ensureLame() {
-    if (window.lamejs && window.lamejs.Mp3Encoder) return Promise.resolve();
-    if (lamePromise) return lamePromise;
-    const srcs = [API + '/vendor/lame.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js',
-      'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js'];
-    lamePromise = (async () => {
-      for (const s of srcs) {
-        try { await loadScript(s); if (window.lamejs && window.lamejs.Mp3Encoder) return; } catch (_) {}
-      }
-      lamePromise = null;
-      throw new Error('Encoder MP3 gagal dimuat. Cek koneksi internet lalu coba lagi.');
-    })();
-    return lamePromise;
-  }
-
-  function floatToInt16(src, from, to) {
-    const out = new Int16Array(to - from);
-    for (let i = from, k = 0; i < to; i++, k++) {
-      const v = src[i];
-      out[k] = v >= 1 ? 32767 : v <= -1 ? -32768 : (v < 0 ? v * 32768 : v * 32767) | 0;
-    }
-    return out;
-  }
-
-  async function encodeMp3(abuf, kbps, onProg) {
+  /* ───────────────── Encoder OGG Vorbis (via FFmpeg Backend) ───────────────── */
+  function audioBufferToWav(abuf) {
     const ch = Math.min(2, abuf.numberOfChannels);
-    const enc = new window.lamejs.Mp3Encoder(ch, abuf.sampleRate, kbps);
-    const L = abuf.getChannelData(0), R = ch > 1 ? abuf.getChannelData(1) : null;
-    const total = abuf.length, BLOCK = 1152 * 20;
-    const out = [];
-    for (let i = 0; i < total; i += BLOCK) {
-      if (state.cancel) throw new Error('CANCELLED');
-      const end = Math.min(total, i + BLOCK);
-      const l16 = floatToInt16(L, i, end);
-      const data = ch > 1 ? enc.encodeBuffer(l16, floatToInt16(R, i, end)) : enc.encodeBuffer(l16);
-      if (data && data.length) out.push(new Uint8Array(data));
-      const y = maybeYield();
-      if (y) { onProg(i / total); await y; }
+    const sr = abuf.sampleRate;
+    const len = abuf.length;
+    const dataSize = len * ch * 2;
+    const buf = new ArrayBuffer(44 + dataSize);
+    const v = new DataView(buf);
+    const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + dataSize, true); str(8, 'WAVE');
+    str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, ch, true); v.setUint32(24, sr, true);
+    v.setUint32(28, sr * ch * 2, true); v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
+    str(36, 'data'); v.setUint32(40, dataSize, true);
+    const chans = [];
+    for (let c = 0; c < ch; c++) chans.push(abuf.getChannelData(c));
+    let off = 44;
+    for (let i = 0; i < len; i++) {
+      for (let c = 0; c < ch; c++) {
+        const s = Math.max(-1, Math.min(1, chans[c][i]));
+        v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        off += 2;
+      }
     }
-    const tail = enc.flush();
-    if (tail && tail.length) out.push(new Uint8Array(tail));
-    onProg(1);
-    return new Blob(out, { type: 'audio/mpeg' });
+    return new Blob([buf], { type: 'audio/wav' });
+  }
+
+  function encodeOggVorbis(abuf, onProg) {
+    return new Promise((resolve, reject) => {
+      if (state.cancel) return reject(new Error('CANCELLED'));
+      const wavBlob = audioBufferToWav(abuf);
+      const fd = new FormData();
+      fd.append('file', wavBlob, 'rendered.wav');
+
+      const xhr = new XMLHttpRequest();
+      state.activeXhr = xhr;
+      xhr.open('POST', API + '/api/convert-ogg', true);
+      xhr.responseType = 'blob';
+      xhr.timeout = 180000;
+
+      xhr.upload.onprogress = e => {
+        if (e.lengthComputable) onProg(0.1 + (e.loaded / e.total) * 0.55);
+      };
+      xhr.onprogress = e => {
+        if (e.lengthComputable) onProg(0.75 + (e.loaded / e.total) * 0.25);
+      };
+      xhr.onload = () => {
+        state.activeXhr = null;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          onProg(1);
+          resolve(new Blob([xhr.response], { type: 'audio/ogg' }));
+        } else {
+          reject(new Error('Server gagal encode OGG Vorbis (HTTP ' + xhr.status + ').'));
+        }
+      };
+      xhr.onerror = () => {
+        state.activeXhr = null;
+        reject(new Error('Koneksi ke server terputus saat encode OGG Vorbis.'));
+      };
+      xhr.ontimeout = () => {
+        state.activeXhr = null;
+        reject(new Error('Timeout saat encode OGG Vorbis. Coba ulangi lagi.'));
+      };
+      xhr.onabort = () => {
+        state.activeXhr = null;
+        reject(new Error('CANCELLED'));
+      };
+      xhr.send(fd);
+    });
   }
 
   /* ───────────────── Konversi + split part ───────────────── */
   function setConvUI(on) {
     $('#convBox').classList.toggle('hidden', !on);
     const b = $('#btnProcess');
-    b.textContent = on ? 'Batal' : 'Konversi & Tambah ke Riwayat';
+    b.textContent = on ? 'Batal' : 'Konversi ke OGG & Tambah ke Riwayat';
     b.classList.toggle('btn-danger', on);
     b.classList.toggle('btn-primary', !on);
     if (!on) { $('#convFill').style.width = '0%'; $('#convText').textContent = ''; }
@@ -828,11 +826,8 @@ header {
     const batchLabel = opts.batchLabel ? opts.batchLabel + ' • ' : '';
     let made = 0;
     try {
-      setConv(0, batchLabel + 'Memuat encoder MP3…');
-      await ensureLame();
       const buf = state.buf;
       const { speed, n, outDur } = plan();
-      const kbps = Number($('#bitrate').value) || 192;
       const title = clip(($('#audioName').value || '').trim(), 120) || 'Untitled';
       const desc = ($('#audioDesc').value || '').trim() || DEFAULT_DESC;
       const fadeIn = $('#fadeIn').checked, fadeOut = $('#fadeOut').checked;
@@ -859,7 +854,7 @@ header {
         const srcLen = T * speed;
         const label = `${batchLabel}Part ${i + 1}/${n}`;
 
-        setConv(i / n, label + ' — merender…');
+        setConv(i / n, label + ' — merender audio…');
         await yieldNow();
         const off = new OfflineAudioContext(chs, frames, SR);
         const src = off.createBufferSource();
@@ -875,15 +870,15 @@ header {
         const rendered = await off.startRendering();
         if (state.cancel) throw new Error('CANCELLED');
 
-        const blob = await encodeMp3(rendered, kbps, f => setConv((i + 0.15 + f * 0.85) / n, `${label} — encode MP3 ${Math.round(f * 100)}%`));
+        const blob = await encodeOggVorbis(rendered, f => setConv((i + 0.1 + f * 0.9) / n, `${label} — encode OGG Vorbis ${Math.round(f * 100)}%`));
         const item = {
           id: uid(), songId, songCreated, created: Date.now(),
           partIndex: i + 1, partCount: n,
           name: partName(title, i, n), desc,
-          duration: T, size: blob.size, bitrate: kbps, blob,
+          duration: T, size: blob.size, format: 'OGG', blob,
           status: 'ready', assetId: '', operationId: '', moderation: '', error: '', ownerType: '', ownerId: ''
         };
-        if (blob.size > MAX_UPLOAD_BYTES) { item.error = 'Ukuran melebihi 20 MB — turunkan kualitas MP3 atau perpendek durasi part.'; }
+        if (blob.size > MAX_UPLOAD_BYTES) { item.error = 'Ukuran melebihi 20 MB — perpendek durasi part.'; }
         state.history.push(item);
         const saved = await DB.put(item);
         if (!saved && DB.ok) toast('Penyimpanan browser penuh — hasil ini hanya ada di memori (jangan refresh).', 'error');
@@ -891,12 +886,13 @@ header {
         made++;
         setConv((i + 1) / n, label + ' — selesai');
       }
-      if (!opts.batch) toast(`${made} file masuk ke Riwayat. Klik Upload di baris untuk kirim ke Roblox.`, 'success');
+      if (!opts.batch) toast(`${made} file OGG Vorbis masuk ke Riwayat.`, 'success');
     } catch (e) {
       if (e && e.message === 'CANCELLED') toast(made ? `Dibatalkan. ${made} part sudah masuk Riwayat.` : 'Konversi dibatalkan.', 'info');
       else { log('convert error', e); toast('Gagal konversi: ' + niceError(e), 'error'); }
     } finally {
       state.converting = false;
+      state.activeXhr = null;
       setConvUI(false);
       saveSettings();
     }
@@ -933,7 +929,7 @@ header {
       total += await convertCurrent({ batch: true, batchLabel: `Lagu ${k + 1}/${files.length}` });
       if (state.cancel) break;
     }
-    toast(`${total} file masuk ke Riwayat dari ${files.length} lagu.`, total ? 'success' : 'info');
+    toast(`${total} file OGG masuk ke Riwayat dari ${files.length} lagu.`, total ? 'success' : 'info');
   }
 
   function setRemoteBusy(on, text) {
@@ -1003,7 +999,7 @@ header {
   function stopPreviewIf(id) { if (preview.id === id) { preview.audio.pause(); preview.id = null; } }
 
   function downloadItem(it) {
-    const a = el('a', { href: URL.createObjectURL(it.blob), download: safeFile(it.name) + '.mp3' });
+    const a = el('a', { href: URL.createObjectURL(it.blob), download: safeFile(it.name) + '.ogg' });
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
@@ -1046,7 +1042,7 @@ header {
     const td = el('td'); const box = el('div', { className: 'acts' });
     const playing = preview.id === it.id && !preview.audio.paused;
     box.append(el('button', { className: 'act-btn', title: 'Putar / jeda', onclick: () => togglePreview(it) }, playing ? '⏸' : '▶'));
-    box.append(el('button', { className: 'act-btn', title: 'Download MP3', onclick: () => downloadItem(it) }, '⬇'));
+    box.append(el('button', { className: 'act-btn', title: 'Download OGG', onclick: () => downloadItem(it) }, '⬇'));
     if (it.status === 'done') {
       box.append(el('button', { className: 'act-btn', title: 'Salin Asset ID', onclick: () => copyText(it.assetId) }, 'Copy ID'));
     } else if (it.operationId && (it.status === 'failed' || it.status === 'processing')) {
@@ -1064,7 +1060,7 @@ header {
     return el('tr', { 'data-id': it.id },
       el('td', { className: 'nowrap muted' }, fmtDate(it.created)),
       el('td', {}, el('strong', {}, it.name), it.partCount > 1 ? el('div', { className: 'small muted' }, `Part ${it.partIndex} dari ${it.partCount}`) : null),
-      el('td', { className: 'nowrap' }, fmt(it.duration), el('div', { className: 'small muted' }, `${fmtSize(it.size)} • ${it.bitrate}k`)),
+      el('td', { className: 'nowrap' }, fmt(it.duration), el('div', { className: 'small muted' }, `${fmtSize(it.size)} • OGG`)),
       idCell(it), statusCell(it), actionCell(it));
   }
 
@@ -1078,7 +1074,7 @@ header {
     const done = items.filter(i => i.status === 'done').length;
     const total = items.reduce((s, i) => s + i.size, 0);
     $('#historySummary').textContent = items.length
-      ? `${items.length} file • ${done} sudah diupload • ${fmtSize(total)}${DB.ok ? '' : ' • (tidak tersimpan setelah refresh)'}`
+      ? `${items.length} file OGG • ${done} sudah diupload • ${fmtSize(total)}${DB.ok ? '' : ' • (tidak tersimpan setelah refresh)'}`
       : 'Belum ada riwayat.';
     $('#btnUploadAll').disabled = state.uploadingAll || !items.some(i => i.status === 'ready' || (i.status === 'failed' && !i.operationId));
     $('#btnUploadAll').textContent = state.uploadingAll ? 'Mengupload…' : 'Upload Semua';
@@ -1144,7 +1140,7 @@ header {
       try {
         r = await fetchT(`${API}/api/operation/${encodeURIComponent(it.operationId)}`, { headers: { 'x-api-key': p.apiKey } }, 30000);
         j = await r.json().catch(() => ({}));
-      } catch (_) { continue; } // error jaringan sesaat → coba lagi
+      } catch (_) { continue; }
       if (!r.ok) {
         if (r.status === 429) { await sleep(6000); continue; }
         throw new Error(j.error || 'HTTP ' + r.status);
@@ -1163,7 +1159,7 @@ header {
     await setItem(it, { status: 'uploading', error: '', operationId: forceNew ? '' : it.operationId, assetId: '', moderation: '', ownerType: p.type, ownerId: p.id });
     try {
       const fd = new FormData();
-      fd.append('file', it.blob, safeFile(it.name) + '.mp3');
+      fd.append('file', it.blob, safeFile(it.name) + '.ogg');
       fd.append('name', it.name);
       fd.append('description', it.desc || DEFAULT_DESC);
       fd.append('ownerType', p.type);
@@ -1203,12 +1199,11 @@ header {
     let ok = 0;
     for (const it of todo) { if (await uploadItem(it)) ok++; }
     state.uploadingAll = false; renderHistory();
-    toast(`${ok} dari ${todo.length} file berhasil diupload.`, ok === todo.length ? 'success' : 'info');
+    toast(`${ok} dari ${todo.length} file OGG berhasil diupload.`, ok === todo.length ? 'success' : 'info');
   }
 
   /* ───────────────── Event wiring ───────────────── */
   function wire() {
-    // tab
     $$('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
       $$('.tab-btn').forEach(b => b.classList.remove('active'));
       $$('.tab-content').forEach(c => c.classList.remove('active'));
@@ -1216,10 +1211,8 @@ header {
       $('#tab-' + btn.dataset.tab).classList.add('active');
     }));
 
-    // theme
     $('#btnThemeToggle').addEventListener('click', () => { applyTheme(state.theme === 'dark' ? 'light' : 'dark'); saveSettings(); });
 
-    // file
     const dz = $('#dropzone'), fi = $('#fileInput');
     $('#btnPickFile').addEventListener('click', e => { e.stopPropagation(); fi.click(); });
     dz.addEventListener('click', () => fi.click());
@@ -1228,22 +1221,18 @@ header {
     dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
     dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); handleFiles(Array.from(e.dataTransfer.files)); });
 
-    // url
     $('#btnFetchRemote').addEventListener('click', fetchRemote);
     $('#remoteUrl').addEventListener('keydown', e => { if (e.key === 'Enter') fetchRemote(); });
 
-    // player
     $('#btnPlay').addEventListener('click', () => state.isPlaying ? pausePlay() : startPlay());
     $('#btnStop').addEventListener('click', stopPlay);
     const seekFrom = (e, node) => { if (!state.buf) return; const r = node.getBoundingClientRect(); seekTo(((e.clientX - r.left) / r.width) * state.duration); };
     $('#progressBar').addEventListener('click', e => seekFrom(e, e.currentTarget));
     $('#waveform').addEventListener('click', e => seekFrom(e, e.currentTarget));
 
-    // sliders & toggles
     const refresh = () => { updateLabels(); updatePlan(); applyLive(); };
     ['#speed', '#amplify', '#partLen'].forEach(s => $(s).addEventListener('input', refresh));
     $('#normalize').addEventListener('change', refresh);
-    $('#bitrate').addEventListener('change', () => { updatePlan(); saveSettings(); });
     $('#audioDesc').addEventListener('change', saveSettings);
     $('#trimStart').addEventListener('input', e => {
       state.trimStart = Number(e.target.value) || 0;
@@ -1251,10 +1240,16 @@ header {
       updateLabels(); updatePlan();
     });
 
-    // konversi / batal
-    $('#btnProcess').addEventListener('click', () => { if (state.converting) { state.cancel = true; $('#convText').textContent = 'Membatalkan…'; } else convertCurrent(); });
+    $('#btnProcess').addEventListener('click', () => {
+      if (state.converting) {
+        state.cancel = true;
+        if (state.activeXhr) state.activeXhr.abort();
+        $('#convText').textContent = 'Membatalkan…';
+      } else {
+        convertCurrent();
+      }
+    });
 
-    // riwayat
     $('#btnUploadAll').addEventListener('click', uploadAll);
     $('#btnCopyAll').addEventListener('click', () => {
       const ids = sortedItems().filter(i => i.assetId).map(i => i.assetId);
@@ -1269,14 +1264,12 @@ header {
       toast('Riwayat dibersihkan.', 'success');
     });
 
-    // target akun
     $$('#histTarget button').forEach(b => b.addEventListener('click', () => {
       state.cfg.target = b.dataset.t; saveSettings(); updateTargetUI();
       const p = profile(state.cfg.target);
       if (!p.apiKey || !p.id) openModal();
     }));
 
-    // modal (kedua tombol API sekarang sama-sama berfungsi)
     $('#btnSettings').addEventListener('click', openModal);
     $('#btnConfigApi').addEventListener('click', openModal);
     $('#btnCloseModal').addEventListener('click', closeModal);
@@ -1299,7 +1292,6 @@ header {
   async function init() {
     loadSettings();
     applyTheme(state.theme);
-    if (state.form.bitrate) $('#bitrate').value = state.form.bitrate;
     if (state.form.desc) $('#audioDesc').value = state.form.desc;
     wire();
     updateLabels(); updateTargetUI(); updatePlayUI();
@@ -1316,7 +1308,6 @@ header {
 
     checkBackend(true);
     setInterval(() => { if (!document.hidden) checkBackend(false); }, 30000);
-    ensureLame().catch(() => {});
 
     for (const it of resume) { await resumePoll(it); }
   }
