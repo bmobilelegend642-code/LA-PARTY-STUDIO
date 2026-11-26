@@ -8,13 +8,15 @@ const crypto = require('crypto');
 const axios = require('axios');
 const FormData = require('form-data');
 
-// Daftarkan folder ./bin agar yt-dlp dari postinstall otomatis terbaca
-process.env.PATH = `${path.join(__dirname, 'bin')}:${process.env.PATH || ''}`;
+const BIN_DIR = path.join(__dirname, 'bin');
+const YTDLP_BIN = path.join(BIN_DIR, 'yt-dlp');
+process.env.PATH = `${BIN_DIR}:${process.env.PATH || ''}`;
 
 const app = express();
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(BIN_DIR, { recursive: true });
 
 function getCookiesPath() {
   const candidates = [
@@ -22,6 +24,48 @@ function getCookiesPath() {
     path.join(__dirname, 'cookies.txt')
   ];
   return candidates.find(p => fs.existsSync(p)) || '';
+}
+
+function getYtdlpBin() {
+  return fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : 'yt-dlp';
+}
+
+// Otomatis unduh binary yt-dlp_linux jika belum ada di server Render
+let ytdlpReadyPromise = null;
+function ensureYtdlp() {
+  if (fs.existsSync(YTDLP_BIN)) return Promise.resolve(YTDLP_BIN);
+  if (ytdlpReadyPromise) return ytdlpReadyPromise;
+
+  ytdlpReadyPromise = (async () => {
+    const tmpFile = `${YTDLP_BIN}.tmp`;
+    try {
+      console.log('⬇️ Mengunduh yt-dlp_linux untuk server...');
+      const res = await axios.get(
+        'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux',
+        { responseType: 'stream', timeout: 60000 }
+      );
+      await new Promise((resolve, reject) => {
+        const ws = fs.createWriteStream(tmpFile);
+        res.data.pipe(ws);
+        ws.on('finish', resolve);
+        ws.on('error', reject);
+      });
+      fs.renameSync(tmpFile, YTDLP_BIN);
+      fs.chmodSync(YTDLP_BIN, 0o755);
+      console.log('✅ yt-dlp_linux berhasil dipasang!');
+      return YTDLP_BIN;
+    } catch (err) {
+      if (fs.existsSync(tmpFile)) {
+        try { fs.unlinkSync(tmpFile); } catch (_) {}
+      }
+      console.error('❌ Gagal mengunduh yt-dlp:', err.message);
+      return 'yt-dlp';
+    } finally {
+      ytdlpReadyPromise = null;
+    }
+  })();
+
+  return ytdlpReadyPromise;
 }
 
 const upload = multer({
@@ -70,9 +114,10 @@ function convertToOggVorbis(inputPath, outputPath) {
   });
 }
 
-function getYtdlpVersion() {
+async function getYtdlpVersion() {
+  const bin = await ensureYtdlp();
   return new Promise((resolve) => {
-    execFile('yt-dlp', ['--version'], { timeout: 5000 }, (err, stdout) => {
+    execFile(bin, ['--version'], { timeout: 8000 }, (err, stdout) => {
       resolve(err ? null : stdout.trim());
     });
   });
@@ -110,12 +155,13 @@ app.post('/api/convert-ogg', upload.single('file'), async (req, res) => {
 });
 
 // 3. Download Audio dari URL (YouTube / SoundCloud) -> Job Async
-app.post('/api/download', (req, res) => {
+app.post('/api/download', async (req, res) => {
   const url = String(req.body?.url || '').trim();
   if (!url || !/^https?:\/\//i.test(url)) {
     return res.status(400).json({ error: 'URL tidak valid' });
   }
 
+  const ytdlpBin = await ensureYtdlp();
   const jobId = crypto.randomUUID();
   const outTemplate = path.join(UPLOAD_DIR, `dl_${jobId}.%(ext)s`);
   const expectedOgg = path.join(UPLOAD_DIR, `dl_${jobId}.ogg`);
@@ -136,7 +182,7 @@ app.post('/api/download', (req, res) => {
     baseArgs.push('--cookies', cookiesPath);
   }
 
-  execFile('yt-dlp', [...baseArgs, '--print', '%(title)s', url], { timeout: 25000 }, (err, stdout) => {
+  execFile(ytdlpBin, [...baseArgs, '--print', '%(title)s', url], { timeout: 25000 }, (err, stdout) => {
     if (!err && stdout) {
       job.title = stdout.trim().split('\n')[0] || '';
     }
@@ -151,7 +197,7 @@ app.post('/api/download', (req, res) => {
     url
   ];
 
-  execFile('yt-dlp', dlArgs, { timeout: 10 * 60 * 1000, maxBuffer: 20 * 1024 * 1024 }, async (error, _stdout, stderr) => {
+  execFile(ytdlpBin, dlArgs, { timeout: 10 * 60 * 1000, maxBuffer: 20 * 1024 * 1024 }, async (error, _stdout, stderr) => {
     if (error) {
       cleanup(expectedOgg);
       job.status = 'error';
@@ -369,4 +415,5 @@ app.get('/api/asset/:assetId', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Backend LA'PARTY STUDIO berjalan di port ${PORT} (OGG Vorbis)`);
+  ensureYtdlp();
 });
