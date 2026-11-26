@@ -284,7 +284,7 @@ header {
             </div>
             <div class="control-group">
               <div class="control-label"><span>Amplify (Penguat)</span><span id="amplifyVal">0 dB</span></div>
-              <input type="range" class="slider" id="amplify" min="-12" max="12" value="0">
+              <input type="range" class="slider" id="amplify" min="-12" max="12" step="0.5" value="0">
             </div>
             <div class="control-group">
               <div class="control-label"><span>Mulai Trim</span><span id="startLabel">0.0s</span></div>
@@ -658,7 +658,8 @@ header {
 
   function updateLabels() {
     $('#speedVal').textContent = speedVal().toFixed(2) + 'x';
-    $('#amplifyVal').textContent = $('#amplify').value + ' dB';
+    const ampDb = Number($('#amplify').value);
+    $('#amplifyVal').textContent = (ampDb > 0 ? '+' : '') + ampDb + ' dB';
     $('#startLabel').textContent = state.trimStart.toFixed(1) + 's';
     $('#partLenLabel').textContent = fmt(Number($('#partLen').value));
   }
@@ -681,8 +682,12 @@ header {
 
   /* ───────────────── Player preview ───────────────── */
   function previewGain() {
-    if ($('#normalize').checked) { const pk = getPeakAll(); return pk > 0 ? 0.95 / pk : 1; }
-    return Math.pow(10, Number($('#amplify').value) / 20);
+    const amp = Math.pow(10, Number($('#amplify').value) / 20);
+    if ($('#normalize').checked) {
+      const pk = getPeakAll();
+      return (pk > 0 ? 0.95 / pk : 1) * amp;
+    }
+    return amp;
   }
   function curPos() {
     if (state.isPlaying && state.ctx) return Math.min(state.duration, state.playOffset + (state.ctx.currentTime - state.playStartCtx) * state.playRate);
@@ -832,13 +837,14 @@ header {
       const desc = ($('#audioDesc').value || '').trim() || DEFAULT_DESC;
       const fadeIn = $('#fadeIn').checked, fadeOut = $('#fadeOut').checked;
 
-      let gain;
+      const amp = Math.pow(10, Number($('#amplify').value) / 20);
+      let gain = amp;
       if ($('#normalize').checked) {
         setConv(0, batchLabel + 'Menghitung level audio…');
         await yieldNow();
         const pk = scanPeak(buf, Math.floor(state.trimStart * buf.sampleRate));
-        gain = pk > 0 ? 0.95 / pk : 1;
-      } else gain = Math.pow(10, Number($('#amplify').value) / 20);
+        gain = (pk > 0 ? 0.95 / pk : 1) * amp;
+      }
 
       const songId = uid(), songCreated = Date.now();
       const chs = Math.min(2, buf.numberOfChannels);
