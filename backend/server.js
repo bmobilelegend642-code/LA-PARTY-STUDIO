@@ -26,10 +26,6 @@ function getCookiesPath() {
   return candidates.find(p => fs.existsSync(p)) || '';
 }
 
-function getYtdlpBin() {
-  return fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : 'yt-dlp';
-}
-
 // Otomatis unduh binary yt-dlp_linux jika belum ada di server Render
 let ytdlpReadyPromise = null;
 function ensureYtdlp() {
@@ -89,6 +85,16 @@ function cleanup(...paths) {
   }
 }
 
+function cleanupJobFiles(jobId) {
+  try {
+    for (const f of fs.readdirSync(UPLOAD_DIR)) {
+      if (f.startsWith(`dl_${jobId}.`)) {
+        cleanup(path.join(UPLOAD_DIR, f));
+      }
+    }
+  } catch (_) {}
+}
+
 setInterval(() => {
   const now = Date.now();
   for (const [id, job] of downloadJobs.entries()) {
@@ -98,6 +104,27 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+
+function normalizeMediaUrl(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    if (u.hostname === 'youtu.be') {
+      const id = u.pathname.replace(/^\/+/, '').split('/')[0];
+      if (id) return `https://www.youtube.com/watch?v=${id}`;
+    }
+    if (u.hostname.includes('youtube.com')) {
+      if (u.pathname === '/watch') {
+        const v = u.searchParams.get('v');
+        if (v) return `https://www.youtube.com/watch?v=${v}`;
+      }
+      if (u.pathname.startsWith('/shorts/')) {
+        const id = u.pathname.split('/')[2];
+        if (id) return `https://www.youtube.com/watch?v=${id}`;
+      }
+    }
+  } catch (_) {}
+  return rawUrl;
+}
 
 function convertToOggVorbis(inputPath, outputPath) {
   return new Promise((resolve, reject) => {
@@ -109,6 +136,23 @@ function convertToOggVorbis(inputPath, outputPath) {
         if (error) return reject(new Error(stderr || error.message));
         if (!fs.existsSync(outputPath)) return reject(new Error('Output OGG tidak terbentuk'));
         resolve(outputPath);
+      }
+    );
+  });
+}
+
+function execYtdlpAttempt(ytdlpBin, args, timeoutMs) {
+  return new Promise((resolve) => {
+    execFile(
+      ytdlpBin,
+      args,
+      { timeout: timeoutMs, maxBuffer: 25 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        resolve({
+          error,
+          stdout: String(stdout || ''),
+          stderr: String(stderr || '')
+        });
       }
     );
   });
@@ -154,13 +198,15 @@ app.post('/api/convert-ogg', upload.single('file'), async (req, res) => {
   }
 });
 
-// 3. Download Audio dari URL (YouTube / SoundCloud) -> Job Async
+// 3. Download Audio dari URL (YouTube / SoundCloud) -> Job Async dengan Auto-Fallback
 app.post('/api/download', async (req, res) => {
-  const url = String(req.body?.url || '').trim();
-  if (!url || !/^https?:\/\//i.test(url)) {
+  const rawUrl = String(req.body?.url || '').trim();
+  if (!rawUrl || !/^https?:\/\//i.test(rawUrl)) {
     return res.status(400).json({ error: 'URL tidak valid' });
   }
 
+  const url = normalizeMediaUrl(rawUrl);
+  const isYouTube = /youtu\.be|youtube\.com/i.test(url);
   const ytdlpBin = await ensureYtdlp();
   const jobId = crypto.randomUUID();
   const outTemplate = path.join(UPLOAD_DIR, `dl_${jobId}.%(ext)s`);
@@ -176,62 +222,93 @@ app.post('/api/download', async (req, res) => {
   };
   downloadJobs.set(jobId, job);
 
-  const baseArgs = ['--no-playlist', '--no-warnings', '--js-runtimes', 'node'];
-  const cookiesPath = getCookiesPath();
-  if (cookiesPath) {
-    baseArgs.push('--cookies', cookiesPath);
-  }
-
-  execFile(ytdlpBin, [...baseArgs, '--print', '%(title)s', url], { timeout: 25000 }, (err, stdout) => {
-    if (!err && stdout) {
-      job.title = stdout.trim().split('\n')[0] || '';
-    }
-  });
-
-  const dlArgs = [
-    ...baseArgs,
-    '-x',
-    '--audio-format', 'vorbis',
-    '--audio-quality', '5',
-    '-o', outTemplate,
-    url
-  ];
-
-  execFile(ytdlpBin, dlArgs, { timeout: 10 * 60 * 1000, maxBuffer: 20 * 1024 * 1024 }, async (error, _stdout, stderr) => {
-    if (error) {
-      cleanup(expectedOgg);
-      job.status = 'error';
-      const rawErr = String(stderr || error.message || 'Gagal mengunduh audio dari URL');
-      const errIdx = rawErr.indexOf('ERROR:');
-      job.error = (errIdx !== -1 ? rawErr.slice(errIdx) : rawErr).trim().slice(0, 300);
-      return;
-    }
-
-    if (fs.existsSync(expectedOgg)) {
-      job.status = 'done';
-      return;
-    }
-
-    const found = fs.readdirSync(UPLOAD_DIR).find(f => f.startsWith(`dl_${jobId}.`));
-    if (found) {
-      const rawFile = path.join(UPLOAD_DIR, found);
-      try {
-        await convertToOggVorbis(rawFile, expectedOgg);
-        cleanup(rawFile);
-        job.status = 'done';
-      } catch (convErr) {
-        cleanup(rawFile, expectedOgg);
-        job.status = 'error';
-        job.error = convErr.message.slice(0, 300);
-      }
-      return;
-    }
-
-    job.status = 'error';
-    job.error = 'File hasil download tidak ditemukan di server';
-  });
-
   res.status(202).json({ jobId });
+
+  // Jalankan proses download secara async di background
+  (async () => {
+    const commonArgs = [
+      '-4',
+      '--no-playlist',
+      '--no-warnings',
+      '--js-runtimes', 'node',
+      '--no-simulate',
+      '--print', 'before_dl:TITLE:%(title)s',
+      '-x',
+      '--audio-format', 'vorbis',
+      '--audio-quality', '5',
+      '-o', outTemplate
+    ];
+
+    const strategies = [];
+    const cookiesPath = getCookiesPath();
+
+    if (isYouTube) {
+      if (cookiesPath) {
+        // Strategi 1: Cookies + InnerTube client yang mendukung cookies
+        strategies.push([
+          ...commonArgs,
+          '--cookies', cookiesPath,
+          '--extractor-args', 'youtube:player_client=tv_embedded,web_creator,mweb,web',
+          url
+        ]);
+      }
+      // Strategi 2: Tanpa cookies menggunakan client API langsung (lolos jika cookie expired/HTML kosong)
+      strategies.push([
+        ...commonArgs,
+        '--extractor-args', 'youtube:player_client=android_vr,tv_embedded,ios,web',
+        url
+      ]);
+      // Strategi 3: Default client bawaan yt-dlp tanpa cookies
+      strategies.push([
+        ...commonArgs,
+        url
+      ]);
+    } else {
+      strategies.push([...commonArgs, url]);
+    }
+
+    let lastError = 'Gagal mengunduh audio dari URL';
+
+    for (let i = 0; i < strategies.length; i++) {
+      cleanupJobFiles(jobId);
+      const result = await execYtdlpAttempt(ytdlpBin, strategies[i], 8 * 60 * 1000);
+
+      const titleLine = result.stdout.split('\n').find(l => l.startsWith('TITLE:'));
+      if (titleLine) {
+        job.title = titleLine.slice(6).trim();
+      }
+
+      if (!result.error) {
+        if (fs.existsSync(expectedOgg)) {
+          job.status = 'done';
+          return;
+        }
+
+        const found = fs.readdirSync(UPLOAD_DIR).find(f => f.startsWith(`dl_${jobId}.`));
+        if (found) {
+          const rawFile = path.join(UPLOAD_DIR, found);
+          try {
+            await convertToOggVorbis(rawFile, expectedOgg);
+            cleanup(rawFile);
+            job.status = 'done';
+            return;
+          } catch (convErr) {
+            cleanup(rawFile, expectedOgg);
+            lastError = convErr.message;
+          }
+        }
+      } else {
+        const rawErr = result.stderr || result.error.message || lastError;
+        const errIdx = rawErr.indexOf('ERROR:');
+        lastError = (errIdx !== -1 ? rawErr.slice(errIdx) : rawErr).split('\n')[0].trim();
+        console.warn(`[yt-dlp] Strategi ${i + 1}/${strategies.length} gagal:`, lastError);
+      }
+    }
+
+    cleanupJobFiles(jobId);
+    job.status = 'error';
+    job.error = lastError.slice(0, 300);
+  })();
 });
 
 // 4. Cek Status Job Download URL
