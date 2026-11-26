@@ -74,8 +74,6 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const downloadJobs = new Map();
-
 function cleanup(...paths) {
   for (const p of paths) {
     if (p && fs.existsSync(p)) {
@@ -94,14 +92,50 @@ function cleanupJobFiles(jobId) {
   } catch (_) {}
 }
 
+// Simpan & baca status job di disk agar tidak hilang jika proses Node restart
+function jobMetaPath(jobId) {
+  if (!/^[a-f0-9-]{36}$/i.test(String(jobId || ''))) return null;
+  return path.join(UPLOAD_DIR, `job_${jobId}.json`);
+}
+
+function saveJob(job) {
+  const p = jobMetaPath(job.id);
+  if (!p) return;
+  try {
+    fs.writeFileSync(p, JSON.stringify(job));
+  } catch (_) {}
+}
+
+function loadJob(jobId) {
+  const p = jobMetaPath(jobId);
+  if (!p || !fs.existsSync(p)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch (_) {
+    return null;
+  }
+}
+
+function deleteJob(jobId) {
+  const p = jobMetaPath(jobId);
+  cleanup(p);
+  cleanupJobFiles(jobId);
+}
+
 setInterval(() => {
   const now = Date.now();
-  for (const [id, job] of downloadJobs.entries()) {
-    if (now - job.createdAt > 20 * 60 * 1000) {
-      cleanup(job.filePath);
-      downloadJobs.delete(id);
+  try {
+    for (const f of fs.readdirSync(UPLOAD_DIR)) {
+      if (f.startsWith('job_') && f.endsWith('.json')) {
+        const full = path.join(UPLOAD_DIR, f);
+        const stat = fs.statSync(full);
+        if (now - stat.mtimeMs > 20 * 60 * 1000) {
+          const id = f.slice(4, -5);
+          deleteJob(id);
+        }
+      }
     }
-  }
+  } catch (_) {}
 }, 5 * 60 * 1000);
 
 function normalizeMediaUrl(rawUrl) {
@@ -145,7 +179,7 @@ function execYtdlpAttempt(ytdlpBin, args, timeoutMs) {
     execFile(
       ytdlpBin,
       args,
-      { timeout: timeoutMs, maxBuffer: 25 * 1024 * 1024 },
+      { timeout: timeoutMs, maxBuffer: 15 * 1024 * 1024 },
       (error, stdout, stderr) => {
         resolve({
           error,
@@ -197,7 +231,7 @@ app.post('/api/convert-ogg', upload.single('file'), async (req, res) => {
   }
 });
 
-// 3. Download Audio Langsung dari URL (Fast Mode - Tanpa FFmpeg Transcode)
+// 3. Download Audio Langsung dari URL (Hemat RAM + Persistent Job)
 app.post('/api/download', async (req, res) => {
   const rawUrl = String(req.body?.url || '').trim();
   if (!rawUrl || !/^https?:\/\//i.test(rawUrl)) {
@@ -218,7 +252,7 @@ app.post('/api/download', async (req, res) => {
     error: '',
     createdAt: Date.now()
   };
-  downloadJobs.set(jobId, job);
+  saveJob(job);
 
   res.status(202).json({ jobId });
 
@@ -227,11 +261,12 @@ app.post('/api/download', async (req, res) => {
       '-4',
       '--no-playlist',
       '--no-warnings',
+      '--no-cache-dir',
       '--no-check-certificates',
       '--socket-timeout', '15',
       '--retries', '2',
       '--fragment-retries', '2',
-      '--concurrent-fragments', '4',
+      '--concurrent-fragments', '2',
       '--no-simulate',
       '--print', 'before_dl:TITLE:%(title)s',
       '-f', 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio',
@@ -242,14 +277,12 @@ app.post('/api/download', async (req, res) => {
     const cookiesPath = getCookiesPath();
 
     if (isYouTube) {
-      // Strategi 1 (Tercepat: 2-4 detik, tanpa JS solver & tanpa FFmpeg)
       strategies.push([
         ...commonArgs,
         '--extractor-args', 'youtube:player_client=android_vr,ios',
         url
       ]);
 
-      // Strategi 2 (Jika video butuh login / dibatasi usia -> pakai cookies)
       if (cookiesPath) {
         strategies.push([
           ...commonArgs,
@@ -260,7 +293,6 @@ app.post('/api/download', async (req, res) => {
         ]);
       }
 
-      // Strategi 3 (Fallback bawaan yt-dlp)
       strategies.push([
         ...commonArgs,
         '--js-runtimes', 'node',
@@ -279,6 +311,7 @@ app.post('/api/download', async (req, res) => {
       const titleLine = result.stdout.split('\n').find(l => l.startsWith('TITLE:'));
       if (titleLine) {
         job.title = titleLine.slice(6).trim();
+        saveJob(job);
       }
 
       if (!result.error) {
@@ -288,6 +321,7 @@ app.post('/api/download', async (req, res) => {
         if (found) {
           job.filePath = path.join(UPLOAD_DIR, found);
           job.status = 'done';
+          saveJob(job);
           return;
         }
       } else {
@@ -301,13 +335,18 @@ app.post('/api/download', async (req, res) => {
     cleanupJobFiles(jobId);
     job.status = 'error';
     job.error = lastError.slice(0, 300);
+    saveJob(job);
   })();
 });
 
 // 4. Cek Status Job Download URL
 app.get('/api/download/:jobId', (req, res) => {
-  const job = downloadJobs.get(req.params.jobId);
-  if (!job) return res.status(404).json({ error: 'Job download tidak ditemukan atau sudah kedaluwarsa' });
+  const job = loadJob(req.params.jobId);
+  if (!job) {
+    return res.status(404).json({
+      error: 'Server baru saja restart/deploy ulang. Silakan klik Ambil Audio sekali lagi.'
+    });
+  }
 
   res.json({
     status: job.status,
@@ -318,7 +357,7 @@ app.get('/api/download/:jobId', (req, res) => {
 
 // 5. Ambil File Hasil Download URL
 app.get('/api/download/:jobId/file', (req, res) => {
-  const job = downloadJobs.get(req.params.jobId);
+  const job = loadJob(req.params.jobId);
   if (!job || job.status !== 'done' || !job.filePath || !fs.existsSync(job.filePath)) {
     return res.status(404).json({ error: 'File audio belum siap atau sudah dihapus' });
   }
@@ -328,8 +367,7 @@ app.get('/api/download/:jobId/file', (req, res) => {
   }
 
   res.sendFile(job.filePath, () => {
-    cleanup(job.filePath);
-    downloadJobs.delete(job.id);
+    deleteJob(job.id);
   });
 });
 
