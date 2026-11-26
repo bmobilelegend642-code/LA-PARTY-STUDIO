@@ -8,11 +8,21 @@ const crypto = require('crypto');
 const axios = require('axios');
 const FormData = require('form-data');
 
+// Daftarkan folder ./bin agar yt-dlp dari postinstall otomatis terbaca
+process.env.PATH = `${path.join(__dirname, 'bin')}:${process.env.PATH || ''}`;
+
 const app = express();
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
-const COOKIES_PATH = path.join(__dirname, 'cookies.txt');
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+function getCookiesPath() {
+  const candidates = [
+    '/etc/secrets/cookies.txt',
+    path.join(__dirname, 'cookies.txt')
+  ];
+  return candidates.find(p => fs.existsSync(p)) || '';
+}
 
 const upload = multer({
   dest: UPLOAD_DIR,
@@ -75,7 +85,7 @@ app.get('/api/health', async (_req, res) => {
     status: 'online',
     message: "Backend LA'PARTY STUDIO aktif (OGG Vorbis Mode)",
     ytdlp: ytdlp || 'tidak tersedia',
-    cookies: fs.existsSync(COOKIES_PATH)
+    cookies: Boolean(getCookiesPath())
   });
 });
 
@@ -120,9 +130,10 @@ app.post('/api/download', (req, res) => {
   };
   downloadJobs.set(jobId, job);
 
-  const baseArgs = ['--no-playlist', '--no-warnings'];
-  if (fs.existsSync(COOKIES_PATH)) {
-    baseArgs.push('--cookies', COOKIES_PATH);
+  const baseArgs = ['--no-playlist', '--no-warnings', '--js-runtimes', 'node'];
+  const cookiesPath = getCookiesPath();
+  if (cookiesPath) {
+    baseArgs.push('--cookies', cookiesPath);
   }
 
   execFile('yt-dlp', [...baseArgs, '--print', '%(title)s', url], { timeout: 25000 }, (err, stdout) => {
@@ -144,7 +155,9 @@ app.post('/api/download', (req, res) => {
     if (error) {
       cleanup(expectedOgg);
       job.status = 'error';
-      job.error = (stderr || error.message || 'Gagal mengunduh audio dari URL').slice(0, 300);
+      const rawErr = String(stderr || error.message || 'Gagal mengunduh audio dari URL');
+      const errIdx = rawErr.indexOf('ERROR:');
+      job.error = (errIdx !== -1 ? rawErr.slice(errIdx) : rawErr).trim().slice(0, 300);
       return;
     }
 
@@ -153,7 +166,6 @@ app.post('/api/download', (req, res) => {
       return;
     }
 
-    // Fallback jika yt-dlp menyimpan ekstensi lain (misal .oga), konversi paksa ke .ogg
     const found = fs.readdirSync(UPLOAD_DIR).find(f => f.startsWith(`dl_${jobId}.`));
     if (found) {
       const rawFile = path.join(UPLOAD_DIR, found);
@@ -264,12 +276,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     const rawOp = response.data?.operationId || response.data?.path || '';
     const operationId = String(rawOp).replace(/^operations\//, '');
-    const rawAsset = response.data?.response?.assetId || response.data?.assetId || '';
+    const assetResp = response.data?.response || response.data || {};
+    const rawAsset = assetResp.assetId || '';
+    const rawMod = assetResp.moderationResult?.moderationState || '';
+    const moderation = rawMod.replace(/^MODERATION_STATE_/, '');
 
     res.json({
       success: true,
       operationId,
-      assetId: String(rawAsset)
+      assetId: String(rawAsset),
+      moderation
     });
   } catch (err) {
     cleanup(file?.path, oggPath);
@@ -280,7 +296,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// 7. Cek Status Operasi & Moderasi Roblox Open Cloud
+// 7. Cek Status Operasi Roblox Open Cloud
 app.get('/api/operation/:operationId', async (req, res) => {
   const apiKey = String(req.headers['x-api-key'] || '').trim();
   const operationId = String(req.params.operationId || '').replace(/^operations\//, '').trim();
@@ -311,6 +327,36 @@ app.get('/api/operation/:operationId', async (req, res) => {
     res.json({
       done: Boolean(data.done),
       assetId: assetId || '',
+      moderation
+    });
+  } catch (err) {
+    const apiErr = err.response?.data;
+    const errorMsg = apiErr?.message || err.message;
+    res.status(err.response?.status || 500).json({ error: errorMsg });
+  }
+});
+
+// 8. Cek Status Moderasi Asset secara Berkala (REVIEWING -> APPROVED / REJECTED)
+app.get('/api/asset/:assetId', async (req, res) => {
+  const apiKey = String(req.headers['x-api-key'] || '').trim();
+  const assetId = String(req.params.assetId || '').replace(/^assets\//, '').trim();
+
+  if (!apiKey || !assetId) {
+    return res.status(400).json({ error: 'API Key atau Asset ID tidak lengkap' });
+  }
+
+  try {
+    const response = await axios.get(`https://apis.roblox.com/assets/v1/assets/${encodeURIComponent(assetId)}`, {
+      headers: { 'x-api-key': apiKey },
+      timeout: 25000
+    });
+
+    const data = response.data || {};
+    const rawMod = data.moderationResult?.moderationState || '';
+    const moderation = rawMod.replace(/^MODERATION_STATE_/, '');
+
+    res.json({
+      assetId: String(data.assetId || assetId),
       moderation
     });
   } catch (err) {
