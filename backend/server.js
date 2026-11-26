@@ -26,19 +26,53 @@ function getCookiesPath() {
   return candidates.find(p => fs.existsSync(p)) || '';
 }
 
+function inspectCookies() {
+  const p = getCookiesPath();
+  if (!p) return { ok: false, label: 'tidak ada' };
+  try {
+    const raw = fs.readFileSync(p, 'utf8').trim();
+    if (!raw) return { ok: false, label: 'file kosong' };
+    if (raw.startsWith('[') || raw.startsWith('{')) {
+      return { ok: false, label: 'format salah (JSON, wajib Netscape .txt)' };
+    }
+    const hasYt = /youtube\.com/i.test(raw);
+    const hasAuth = /\b(SID|SAPISID|__Secure-1PSID|__Secure-3PSID|LOGIN_INFO)\b/.test(raw);
+    if (hasYt && hasAuth) return { ok: true, label: 'valid (login aktif)' };
+    if (hasYt) return { ok: false, label: 'belum login YouTube saat export' };
+    return { ok: false, label: 'tidak berisi cookie YouTube' };
+  } catch (_) {
+    return { ok: false, label: 'gagal dibaca' };
+  }
+}
+
+function hasPython3() {
+  return new Promise((resolve) => {
+    execFile('python3', ['--version'], { timeout: 3000 }, (err) => resolve(!err));
+  });
+}
+
+// Unduh yt-dlp zipapp (~3 MB, start 0.4 detik, hemat RAM) sebagai pengganti PyInstaller 35 MB
 let ytdlpReadyPromise = null;
 function ensureYtdlp() {
-  if (fs.existsSync(YTDLP_BIN)) return Promise.resolve(YTDLP_BIN);
+  if (fs.existsSync(YTDLP_BIN)) {
+    const stat = fs.statSync(YTDLP_BIN);
+    // Jika file > 15 MB, itu adalah PyInstaller lama -> ganti dengan zipapp 3 MB
+    if (stat.size > 100 * 1024 && stat.size < 15 * 1024 * 1024) {
+      return Promise.resolve(YTDLP_BIN);
+    }
+  }
   if (ytdlpReadyPromise) return ytdlpReadyPromise;
 
   ytdlpReadyPromise = (async () => {
     const tmpFile = `${YTDLP_BIN}.tmp`;
     try {
-      console.log('⬇️ Mengunduh yt-dlp_linux untuk server...');
-      const res = await axios.get(
-        'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux',
-        { responseType: 'stream', timeout: 60000 }
-      );
+      const pyOk = await hasPython3();
+      const downloadUrl = pyOk
+        ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp'
+        : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux';
+
+      console.log(`⬇️ Mengunduh yt-dlp (${pyOk ? 'fast zipapp 3MB' : 'linux binary'})...`);
+      const res = await axios.get(downloadUrl, { responseType: 'stream', timeout: 45000 });
       await new Promise((resolve, reject) => {
         const ws = fs.createWriteStream(tmpFile);
         res.data.pipe(ws);
@@ -47,14 +81,14 @@ function ensureYtdlp() {
       });
       fs.renameSync(tmpFile, YTDLP_BIN);
       fs.chmodSync(YTDLP_BIN, 0o755);
-      console.log('✅ yt-dlp_linux berhasil dipasang!');
+      console.log('✅ yt-dlp siap digunakan!');
       return YTDLP_BIN;
     } catch (err) {
       if (fs.existsSync(tmpFile)) {
         try { fs.unlinkSync(tmpFile); } catch (_) {}
       }
       console.error('❌ Gagal mengunduh yt-dlp:', err.message);
-      return 'yt-dlp';
+      return fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : 'yt-dlp';
     } finally {
       ytdlpReadyPromise = null;
     }
@@ -92,7 +126,6 @@ function cleanupJobFiles(jobId) {
   } catch (_) {}
 }
 
-// Simpan & baca status job di disk agar tidak hilang jika proses Node restart
 function jobMetaPath(jobId) {
   if (!/^[a-f0-9-]{36}$/i.test(String(jobId || ''))) return null;
   return path.join(UPLOAD_DIR, `job_${jobId}.json`);
@@ -101,24 +134,17 @@ function jobMetaPath(jobId) {
 function saveJob(job) {
   const p = jobMetaPath(job.id);
   if (!p) return;
-  try {
-    fs.writeFileSync(p, JSON.stringify(job));
-  } catch (_) {}
+  try { fs.writeFileSync(p, JSON.stringify(job)); } catch (_) {}
 }
 
 function loadJob(jobId) {
   const p = jobMetaPath(jobId);
   if (!p || !fs.existsSync(p)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(p, 'utf8'));
-  } catch (_) {
-    return null;
-  }
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; }
 }
 
 function deleteJob(jobId) {
-  const p = jobMetaPath(jobId);
-  cleanup(p);
+  cleanup(jobMetaPath(jobId));
   cleanupJobFiles(jobId);
 }
 
@@ -128,10 +154,8 @@ setInterval(() => {
     for (const f of fs.readdirSync(UPLOAD_DIR)) {
       if (f.startsWith('job_') && f.endsWith('.json')) {
         const full = path.join(UPLOAD_DIR, f);
-        const stat = fs.statSync(full);
-        if (now - stat.mtimeMs > 20 * 60 * 1000) {
-          const id = f.slice(4, -5);
-          deleteJob(id);
+        if (now - fs.statSync(full).mtimeMs > 20 * 60 * 1000) {
+          deleteJob(f.slice(4, -5));
         }
       }
     }
@@ -183,6 +207,7 @@ function execYtdlpAttempt(ytdlpBin, args, timeoutMs) {
       (error, stdout, stderr) => {
         resolve({
           error,
+          killed: Boolean(error && error.killed),
           stdout: String(stdout || ''),
           stderr: String(stderr || '')
         });
@@ -203,11 +228,12 @@ async function getYtdlpVersion() {
 // 1. Health Check
 app.get('/api/health', async (_req, res) => {
   const ytdlp = await getYtdlpVersion();
+  const ck = inspectCookies();
   res.json({
     status: 'online',
     message: "Backend LA'PARTY STUDIO aktif (OGG Vorbis Mode)",
-    ytdlp: ytdlp || 'tidak tersedia',
-    cookies: Boolean(getCookiesPath())
+    ytdlp: ytdlp ? `${ytdlp} (${ck.label})` : 'tidak tersedia',
+    cookies: ck.ok
   });
 });
 
@@ -231,7 +257,7 @@ app.post('/api/convert-ogg', upload.single('file'), async (req, res) => {
   }
 });
 
-// 3. Download Audio Langsung dari URL (Hemat RAM + Persistent Job)
+// 3. Download Audio Langsung dari URL (Fast Mode <= 25s max)
 app.post('/api/download', async (req, res) => {
   const rawUrl = String(req.body?.url || '').trim();
   if (!rawUrl || !/^https?:\/\//i.test(rawUrl)) {
@@ -263,10 +289,9 @@ app.post('/api/download', async (req, res) => {
       '--no-warnings',
       '--no-cache-dir',
       '--no-check-certificates',
-      '--socket-timeout', '15',
-      '--retries', '2',
-      '--fragment-retries', '2',
-      '--concurrent-fragments', '2',
+      '--socket-timeout', '10',
+      '--retries', '1',
+      '--fragment-retries', '1',
       '--no-simulate',
       '--print', 'before_dl:TITLE:%(title)s',
       '-f', 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio',
@@ -275,27 +300,23 @@ app.post('/api/download', async (req, res) => {
 
     const strategies = [];
     const cookiesPath = getCookiesPath();
+    const ck = inspectCookies();
 
     if (isYouTube) {
-      strategies.push([
-        ...commonArgs,
-        '--extractor-args', 'youtube:player_client=android_vr,ios',
-        url
-      ]);
-
-      if (cookiesPath) {
+      if (cookiesPath && ck.ok) {
+        // Strategi 1: Cookies login aktif + JS runtime Node
         strategies.push([
           ...commonArgs,
           '--js-runtimes', 'node',
           '--cookies', cookiesPath,
-          '--extractor-args', 'youtube:player_client=tv_embedded,web_creator,mweb',
           url
         ]);
       }
-
+      // Strategi 2: Client tanpa cookies (android_vr / web)
       strategies.push([
         ...commonArgs,
         '--js-runtimes', 'node',
+        '--extractor-args', 'youtube:player_client=android_vr,web',
         url
       ]);
     } else {
@@ -306,7 +327,7 @@ app.post('/api/download', async (req, res) => {
 
     for (let i = 0; i < strategies.length; i++) {
       cleanupJobFiles(jobId);
-      const result = await execYtdlpAttempt(ytdlpBin, strategies[i], 60 * 1000);
+      const result = await execYtdlpAttempt(ytdlpBin, strategies[i], 25 * 1000);
 
       const titleLine = result.stdout.split('\n').find(l => l.startsWith('TITLE:'));
       if (titleLine) {
@@ -324,11 +345,17 @@ app.post('/api/download', async (req, res) => {
           saveJob(job);
           return;
         }
+      } else if (result.killed) {
+        lastError = 'Timeout (25 dtk) — YouTube membatasi koneksi server ini.';
       } else {
         const rawErr = result.stderr || result.error.message || lastError;
         const errIdx = rawErr.indexOf('ERROR:');
-        lastError = (errIdx !== -1 ? rawErr.slice(errIdx) : rawErr).split('\n')[0].trim();
-        console.warn(`[yt-dlp] Strategi ${i + 1}/${strategies.length} gagal:`, lastError);
+        const cleanMsg = (errIdx !== -1 ? rawErr.slice(errIdx) : rawErr).split('\n')[0].trim();
+        if (/Sign in to confirm|bot|player response/i.test(cleanMsg)) {
+          lastError = `Ditolak YouTube (status cookie: ${ck.label}). Export ulang cookies.txt dari mode Incognito saat login YouTube lalu simpan ke Secret Files Render.`;
+        } else {
+          lastError = cleanMsg;
+        }
       }
     }
 
