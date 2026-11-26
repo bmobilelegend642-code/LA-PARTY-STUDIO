@@ -12,12 +12,11 @@ const app = express();
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 const COOKIES_PATH = path.join(__dirname, 'cookies.txt');
 
-// Pastikan folder uploads selalu tersedia di container Render
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const upload = multer({
   dest: UPLOAD_DIR,
-  limits: { fileSize: 400 * 1024 * 1024 } // Maks 400 MB
+  limits: { fileSize: 400 * 1024 * 1024 }
 });
 
 app.use(cors({
@@ -26,7 +25,6 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Penyimpanan job download URL sementara
 const downloadJobs = new Map();
 
 function cleanup(...paths) {
@@ -37,7 +35,6 @@ function cleanup(...paths) {
   }
 }
 
-// Bersihkan job download yang kadaluarsa (> 20 menit)
 setInterval(() => {
   const now = Date.now();
   for (const [id, job] of downloadJobs.entries()) {
@@ -48,7 +45,6 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
-// Konversi audio ke OGG Vorbis (.ogg) menggunakan FFmpeg
 function convertToOggVorbis(inputPath, outputPath) {
   return new Promise((resolve, reject) => {
     execFile(
@@ -64,7 +60,6 @@ function convertToOggVorbis(inputPath, outputPath) {
   });
 }
 
-// Cek versi yt-dlp untuk indikator health check
 function getYtdlpVersion() {
   return new Promise((resolve) => {
     execFile('yt-dlp', ['--version'], { timeout: 5000 }, (err, stdout) => {
@@ -130,14 +125,12 @@ app.post('/api/download', (req, res) => {
     baseArgs.push('--cookies', COOKIES_PATH);
   }
 
-  // Ambil judul lagu terlebih dahulu (non-blocking)
   execFile('yt-dlp', [...baseArgs, '--print', '%(title)s', url], { timeout: 25000 }, (err, stdout) => {
     if (!err && stdout) {
       job.title = stdout.trim().split('\n')[0] || '';
     }
   });
 
-  // Unduh dan ekstrak audio langsung ke OGG Vorbis
   const dlArgs = [
     ...baseArgs,
     '-x',
@@ -147,14 +140,37 @@ app.post('/api/download', (req, res) => {
     url
   ];
 
-  execFile('yt-dlp', dlArgs, { timeout: 10 * 60 * 1000, maxBuffer: 20 * 1024 * 1024 }, (error, _stdout, stderr) => {
-    if (error || !fs.existsSync(expectedOgg)) {
+  execFile('yt-dlp', dlArgs, { timeout: 10 * 60 * 1000, maxBuffer: 20 * 1024 * 1024 }, async (error, _stdout, stderr) => {
+    if (error) {
       cleanup(expectedOgg);
       job.status = 'error';
-      job.error = (stderr || error?.message || 'Gagal mengunduh audio dari URL').slice(0, 300);
+      job.error = (stderr || error.message || 'Gagal mengunduh audio dari URL').slice(0, 300);
       return;
     }
-    job.status = 'done';
+
+    if (fs.existsSync(expectedOgg)) {
+      job.status = 'done';
+      return;
+    }
+
+    // Fallback jika yt-dlp menyimpan ekstensi lain (misal .oga), konversi paksa ke .ogg
+    const found = fs.readdirSync(UPLOAD_DIR).find(f => f.startsWith(`dl_${jobId}.`));
+    if (found) {
+      const rawFile = path.join(UPLOAD_DIR, found);
+      try {
+        await convertToOggVorbis(rawFile, expectedOgg);
+        cleanup(rawFile);
+        job.status = 'done';
+      } catch (convErr) {
+        cleanup(rawFile, expectedOgg);
+        job.status = 'error';
+        job.error = convErr.message.slice(0, 300);
+      }
+      return;
+    }
+
+    job.status = 'error';
+    job.error = 'File hasil download tidak ditemukan di server';
   });
 
   res.status(202).json({ jobId });
@@ -205,7 +221,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'File audio atau API Key tidak lengkap' });
     }
 
-    // Pastikan file benar-benar berformat OGG Vorbis sebelum dikirim ke Roblox
     if (!isAlreadyOgg) {
       await convertToOggVorbis(file.path, oggPath);
     }
@@ -247,7 +262,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     cleanup(file.path, oggPath);
 
-    // Roblox mengembalikan path "operations/<id>" atau operationId langsung
     const rawOp = response.data?.operationId || response.data?.path || '';
     const operationId = String(rawOp).replace(/^operations\//, '');
     const rawAsset = response.data?.response?.assetId || response.data?.assetId || '';
